@@ -31,6 +31,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .search-box { padding: 5px 10px; border-radius: 6px; border: 1px solid #cbd5e0; font-size: 12px; width: 220px; margin-left: auto; }
 .export-btn { padding: 5px 14px; background: #276749; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; }
 .export-btn:hover { background: #22543d; }
+.toggle-btn { padding: 5px 14px; background: white; color: #4a5568; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500; white-space: nowrap; }
+.toggle-btn:hover { background: #edf2f7; }
+.toggle-btn.active { background: #f0fff4; color: #276749; border-color: #9ae6b4; }
 
 .sync-status { font-size: 11px; display: flex; align-items: center; gap: 5px; }
 .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #68d391; flex-shrink: 0; }
@@ -78,6 +81,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .arb-btn.exc:hover, .arb-btn.exc.sel { background: #c53030; color: white; }
 .motivo-sel { padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e0; font-size: 11px; background: white; max-width: 240px; }
 .saving { font-size: 11px; color: #276749; margin-left: auto; opacity: 0; transition: opacity 0.3s; }
+.arb-notes { width: 100%; margin-top: 8px; padding: 7px 10px; border-radius: 6px; border: 1px solid #cbd5e0; font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #2d3748; resize: vertical; min-height: 52px; line-height: 1.5; }
+.arb-notes:focus { outline: none; border-color: #276749; box-shadow: 0 0 0 2px rgba(39,103,73,0.15); }
+.arb-notes::placeholder { color: #a0aec0; }
 .saving.show { opacity: 1; }
 .resolved-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
 .rb-inc { background: #c6f6d5; color: #276749; }
@@ -115,6 +121,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <button class="filter-btn" onclick="setFilter('pendiente',this)">⏳ Pendiente</button>
   <button class="filter-btn" onclick="setFilter('INCLUIR',this)">✓ Resueltos Incluir</button>
   <button class="filter-btn" onclick="setFilter('EXCLUIR',this)">✗ Resueltos Excluir</button>
+  <button class="toggle-btn" id="toggleHideBtn" onclick="toggleHideResolved()">👁 Mostrar resueltos</button>
   <input class="search-box" id="searchBox" placeholder="Buscar título o autor..." oninput="renderList()">
   <button class="export-btn" onclick="exportCSV()">⬇ Exportar decisiones árbitro</button>
 </div>
@@ -139,6 +146,7 @@ let openCards = new Set();
 let saveQueue = {};
 let isSaving  = false;
 let dataLoaded = false;
+let hideResolved = true; // hide resolved articles by default
 
 // ── Sync ──────────────────────────────────────────────────────────────────────
 function setSync(state, msg) {
@@ -159,9 +167,10 @@ async function loadDecisions() {
       const row = rows[i];
       const id = parseInt(row[0]);
       if (!id || isNaN(id)) continue;
-      const dec = String(row[6]||'').trim();
-      const mot = String(row[7]||'').trim();
-      if (dec) arbDecisions[id] = { dec, mot };
+      const dec  = String(row[6]||'').trim();
+      const mot  = String(row[7]||'').trim();
+      const note = String(row[8]||'').trim();
+      if (dec) arbDecisions[id] = { dec, mot, note };
     }
     dataLoaded = true;
     setSync('ok','Sincronizado ✓');
@@ -190,6 +199,9 @@ async function processSaveQueue() {
       const row = item.id + 1;
       await fetch(`${SCRIPT}?action=write&row=${row}&col=7&value=${encodeURIComponent(item.dec)}`);
       await fetch(`${SCRIPT}?action=write&row=${row}&col=8&value=${encodeURIComponent(item.mot)}`);
+      if (item.note !== undefined) {
+        await fetch(`${SCRIPT}?action=write&row=${row}&col=9&value=${encodeURIComponent(item.note)}`);
+      }
       setSync('ok','Guardado ✓');
     } catch(e) {
       setSync('error','Error al guardar');
@@ -232,6 +244,19 @@ function decClass(dec) {
   return 'dec-empty';
 }
 
+function toggleHideResolved() {
+  hideResolved = !hideResolved;
+  const btn = document.getElementById('toggleHideBtn');
+  if (hideResolved) {
+    btn.textContent = '👁 Mostrar resueltos';
+    btn.classList.remove('active');
+  } else {
+    btn.textContent = '🙈 Ocultar resueltos';
+    btn.classList.add('active');
+  }
+  renderList();
+}
+
 function renderList() {
   const container = document.getElementById('articleList');
   if (!dataLoaded) {
@@ -241,6 +266,8 @@ function renderList() {
   const q = document.getElementById('searchBox').value.toLowerCase();
   const filtered = ARTICLES.filter(a => {
     const arb = arbDecisions[a.id];
+    // Hide resolved articles by default unless temporarily visible
+    if (hideResolved && currentFilter === 'todos' && arb?.dec && !temporarilyVisible.has(a.id)) return false;
     if (currentFilter === 'pendiente' && arb?.dec) return false;
     if (currentFilter === 'INCLUIR'  && arb?.dec !== 'INCLUIR') return false;
     if (currentFilter === 'EXCLUIR'  && arb?.dec !== 'EXCLUIR') return false;
@@ -249,7 +276,10 @@ function renderList() {
   });
 
   if (filtered.length === 0) {
-    container.innerHTML = '<div class="empty">No hay artículos con los filtros seleccionados.</div>';
+    const msg = hideResolved && currentFilter === 'todos'
+      ? '<p style="font-size:16px;color:#276749;font-weight:600;margin-bottom:8px;">¡Arbitraje completado!</p><p style="font-size:13px;color:#718096;">Todos los artículos han sido resueltos. Pulsa "Mostrar resueltos" para revisar las decisiones.</p>'
+      : '<p style="font-size:14px;color:#a0aec0;">No hay artículos con los filtros seleccionados.</p>';
+    container.innerHTML = `<div class="empty">${msg}</div>`;
     return;
   }
 
@@ -310,6 +340,7 @@ function renderList() {
           ${arbDec==='EXCLUIR'?`<select class="motivo-sel" id="m${a.id}" onchange="saveMotArb(${a.id})">${motivoOpts}</select>`:''}
           <span class="saving" id="sv${a.id}">✓ Guardado</span>
         </div>
+        <textarea class="arb-notes" id="n${a.id}" placeholder="Justificación del árbitro (opcional)..." onblur="saveNoteArb(${a.id})">${esc(arb.note||'')}</textarea>
       </div>
     </div>`;
   }).join('');
@@ -329,23 +360,55 @@ function toggleCard(id) {
   else openCards.delete(id);
 }
 
+let temporarilyVisible = new Set();
+
 function arbitrate(id, dec) {
   const cur = arbDecisions[id] || {};
   const newDec = cur.dec === dec ? '' : dec;
   const newMot = newDec === 'EXCLUIR' ? (cur.mot||'') : '';
-  if (newDec) arbDecisions[id] = { dec: newDec, mot: newMot };
+  if (newDec) arbDecisions[id] = { dec: newDec, mot: newMot, note: (cur.note||'') };
   else delete arbDecisions[id];
   queueSave(id, newDec, newMot);
   updateStats();
-  renderList();
-  setTimeout(() => {
-    const sv = document.getElementById('sv'+id);
-    if (sv) { sv.classList.add('show'); setTimeout(()=>sv.classList.remove('show'),2000); }
-    if (newDec==='EXCLUIR') {
+
+  if (newDec === 'EXCLUIR' && hideResolved) {
+    // Keep visible until motivo is selected
+    temporarilyVisible.add(id);
+    renderList();
+    setTimeout(() => {
       const sel = document.getElementById('m'+id);
-      if (sel) sel.focus();
-    }
-  }, 60);
+      if (sel) { sel.focus(); sel.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+    }, 60);
+  } else if (newDec === 'INCLUIR' && hideResolved) {
+    // Show briefly then hide
+    temporarilyVisible.add(id);
+    renderList();
+    setTimeout(() => {
+      const sv = document.getElementById('sv'+id);
+      if (sv) { sv.classList.add('show'); setTimeout(()=>sv.classList.remove('show'),1500); }
+      setTimeout(() => { temporarilyVisible.delete(id); renderList(); }, 1200);
+    }, 60);
+  } else {
+    temporarilyVisible.delete(id);
+    renderList();
+    setTimeout(() => {
+      const sv = document.getElementById('sv'+id);
+      if (sv) { sv.classList.add('show'); setTimeout(()=>sv.classList.remove('show'),2000); }
+    }, 60);
+  }
+}
+
+function saveNoteArb(id) {
+  const note = document.getElementById('n'+id)?.value || '';
+  const cur = arbDecisions[id] || {};
+  if (!cur.dec) return; // don't save note if no decision yet
+  arbDecisions[id] = { dec: cur.dec, mot: cur.mot||'', note };
+  queueSaveNote(id, note);
+}
+
+function queueSaveNote(id, note) {
+  saveQueue['note_'+id] = { id, dec: arbDecisions[id]?.dec||'', mot: arbDecisions[id]?.mot||'', note, isNote: true };
+  if (!isSaving) processSaveQueue();
 }
 
 function saveMotArb(id) {
@@ -353,6 +416,11 @@ function saveMotArb(id) {
   const cur = arbDecisions[id] || {};
   arbDecisions[id] = { dec: cur.dec, mot };
   queueSave(id, cur.dec, mot);
+  // Hide after motivo selected
+  if (mot && mot !== '' && hideResolved) {
+    temporarilyVisible.delete(id);
+    setTimeout(() => renderList(), 800);
+  }
 }
 
 function esc(s) {
@@ -361,10 +429,10 @@ function esc(s) {
 }
 
 function exportCSV() {
-  let csv = 'ID,Título,Decisión R1,Motivo R1,Decisión R2,Motivo R2,Decisión Árbitro,Motivo Árbitro\n';
+  let csv = 'ID,Título,Decisión R1,Motivo R1,Decisión R2,Motivo R2,Decisión Árbitro,Motivo Árbitro,Justificación Árbitro\n';
   ARTICLES.forEach(a => {
     const arb = arbDecisions[a.id] || {};
-    const row = [a.id,a.title,a.dec_r1,a.mot_r1,a.dec_r2,a.mot_r2,arb.dec||'',arb.mot||'']
+    const row = [a.id,a.title,a.dec_r1,a.mot_r1,a.dec_r2,a.mot_r2,arb.dec||'',arb.mot||'',arb.note||'']
       .map(v => `"${String(v||'').replace(/"/g,'""')}"`)
       .join(',');
     csv += row + '\n';
