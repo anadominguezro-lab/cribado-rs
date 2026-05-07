@@ -55,10 +55,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .card-title { font-size: 13px; font-weight: 600; color: #1a202c; line-height: 1.4; margin-bottom: 4px; user-select: text; }
 .card-meta  { font-size: 11px; color: #718096; line-height: 1.5; user-select: text; }
 
-/* PDF row */
 .pdf-row { display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: #f7fafc; border-top: 1px solid #e2e8f0; flex-wrap: wrap; }
-.pdf-status-ok  { font-size: 11px; color: #276749; font-weight: 600; }
-.pdf-status-no  { font-size: 11px; color: #c05621; }
+.pdf-info { font-size: 11px; color: #4a5568; }
 .btn-pdf { padding: 4px 14px; background: #276749; color: white; border: none; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap; }
 .btn-pdf:hover { background: #22543d; }
 .btn-drive { padding: 4px 12px; background: white; color: #2b6cb0; border: 1px solid #2b6cb0; border-radius: 6px; font-size: 11px; cursor: pointer; text-decoration: none; white-space: nowrap; }
@@ -66,8 +64,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 .card-body { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
 .card-body.open { max-height: 400px; overflow-y: auto; }
-.abstract { font-size: 11px; color: #4a5568; line-height: 1.6; background: #f7fafc; padding: 12px 16px; user-select: text; }
-.no-abs { font-size: 11px; color: #e53e3e; font-style: italic; padding: 8px 16px; }
 
 .card-footer { padding: 10px 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-top: 1px solid #e2e8f0; background: #f0fff4; }
 .dec-label { font-size: 11px; font-weight: 700; color: #276749; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 2px; }
@@ -137,7 +133,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 const SCRIPT     = "https://script.google.com/macros/s/AKfycbz1hC1dIQSp-KYNQQOk4NjenO_9ULXa3zJgw3wP6RDLqypaNfgoVl4bY5YgumqWhjvv/exec";
 const FOLDER_ID  = '1QNEjNPInuQMR7XVZVu45Z2xYpnQrNb0k';
 const FOLDER_URL = 'https://drive.google.com/drive/folders/' + FOLDER_ID;
-const API_KEY    = 'AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY';
+
+// Enlace de búsqueda directa en la carpeta de Drive (no requiere API Key)
+function driveSearchUrl(id) {
+  const query = encodeURIComponent(`#${id}`);
+  return `https://drive.google.com/drive/folders/${FOLDER_ID}?q=${query}`;
+}
 
 const MOTIVOS = ["",
   "E1 — Población oncológica activa",
@@ -226,7 +227,6 @@ const ARTICLES = [
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let decisions      = {};
-let driveFiles     = JSON.parse(localStorage.getItem('f2drive') || '{}');
 let currentReviewer = '';
 let currentFilter   = 'todos';
 let openCards       = new Set();
@@ -235,29 +235,6 @@ let temporarilyVisible = new Set();
 let saveQueue       = {};
 let isSaving        = false;
 let dataLoaded      = false;
-
-// ── GOOGLE DRIVE ──────────────────────────────────────────────────────────────
-async function loadDrive() {
-  try {
-    let files = [], pt = '';
-    do {
-      const url = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents+and+mimeType='application/pdf'&fields=files(id,name),nextPageToken&pageSize=100&key=${API_KEY}${pt ? '&pageToken='+pt : ''}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const d = await res.json();
-      if (d.error) throw new Error(d.error.message);
-      files = files.concat(d.files || []);
-      pt = d.nextPageToken || '';
-    } while (pt);
-    const m = {};
-    files.forEach(f => { const x = f.name.match(/^#?(\d+)/); if (x) m[parseInt(x[1])] = f.id; });
-    driveFiles = m;
-    localStorage.setItem('f2drive', JSON.stringify(driveFiles));
-    renderList();
-  } catch(e) {
-    console.warn('Drive sync error:', e.message);
-  }
-}
 
 // ── SHEETS ────────────────────────────────────────────────────────────────────
 function setSync(state, msg) {
@@ -272,6 +249,7 @@ async function loadDecisions(silent=false) {
     const r = await fetch(SCRIPT + '?action=read&sheet=Fase2&t=' + Date.now());
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const j = await r.json();
+    if (j.error) throw new Error(j.error);
     const rows = j.data || [];
     decisions = {};
     for (let i = 1; i < rows.length; i++) {
@@ -288,9 +266,8 @@ async function loadDecisions(silent=false) {
     updateStats();
     renderList();
   } catch(e) {
-    // Si la hoja Fase2 no existe aún, inicializar vacío
     dataLoaded = true;
-    setSync('ok', 'Listo (hoja nueva)');
+    setSync('error', 'Error: ' + e.message);
     updateStats();
     renderList();
   }
@@ -312,7 +289,6 @@ async function processSaveQueue() {
     try {
       const colDec = item.reviewer === 'R1' ? 3 : 5;
       const colMot = item.reviewer === 'R1' ? 4 : 6;
-      // Find row by ID in sheet Fase2
       await fetch(`${SCRIPT}?action=writeById&sheet=Fase2&id=${item.id}&col=${colDec}&value=${encodeURIComponent(item.dec)}`);
       await fetch(`${SCRIPT}?action=writeById&sheet=Fase2&id=${item.id}&col=${colMot}&value=${encodeURIComponent(item.mot)}`);
       setSync('ok', 'Guardado ✓');
@@ -429,27 +405,24 @@ function cardHTML(a) {
   const dec = myD.dec;
   const mot = myD.mot;
   const cardCls = dec==='INCLUIR'?'di':dec==='EXCLUIR'?'de':dec==='DUDOSO'?'dd':'';
-  const fid = driveFiles[a.id];
-  const hasPdf = !!fid;
   const motivoOpts = MOTIVOS.map(m =>
     `<option value="${m}" ${mot===m?'selected':''}>${m||'— Motivo de exclusión —'}</option>`
   ).join('');
   const metaParts = [a.authors, a.journal ? `<i>${esc(a.journal)}</i>` : '', a.year, a.doi ? `DOI: ${a.doi.substring(0,45)}` : ''].filter(Boolean).join(' · ');
 
-  const pdfSection = hasPdf
-    ? `<span class="pdf-status-ok">✓ PDF disponible en Drive</span>
-       <a class="btn-pdf" href="https://drive.google.com/file/d/${fid}/view" target="_blank">Abrir PDF →</a>`
-    : `<span class="pdf-status-no">⚠ PDF pendiente de subir</span>`;
+  // URL de búsqueda directa en Drive para este artículo
+  const searchUrl = driveSearchUrl(a.id);
 
   return `<div class="card ${cardCls}" id="c${a.id}">
     <div class="card-head" onclick="toggleCard(${a.id})">
-      <div class="card-num">#${a.id}${!hasPdf ? ' <span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:1px 6px;border-radius:4px;margin-left:4px;">sin PDF</span>' : ''}</div>
+      <div class="card-num">#${a.id}</div>
       <div class="card-title">${esc(a.title)}</div>
       <div class="card-meta">${metaParts}</div>
     </div>
     <div class="pdf-row">
-      ${pdfSection}
-      <a class="btn-drive" href="${FOLDER_URL}" target="_blank">📁 Carpeta Drive</a>
+      <span class="pdf-info">📄 Nombre del archivo en Drive: <strong>#${a.id}.pdf</strong></span>
+      <a class="btn-pdf" href="${searchUrl}" target="_blank">🔍 Buscar PDF en Drive</a>
+      <a class="btn-drive" href="${FOLDER_URL}" target="_blank">📁 Carpeta completa</a>
     </div>
     <div class="card-body" id="b${a.id}">
       <div style="height:8px"></div>
@@ -531,7 +504,6 @@ function exportCSV() {
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 loadDecisions();
-loadDrive();
 setInterval(() => { if (!isSaving) loadDecisions(true); }, 90000);
 </script>
 </body>
