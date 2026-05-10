@@ -6,257 +6,284 @@
 <title>Fase 2 — Texto Completo · RS Dolor Pediátrico</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; color: #2d3748; }
-.app-wrap { display: flex; height: 100vh; flex-direction: column; }
-.header { background: #1a252f; color: white; padding: 14px 20px; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.3); flex-shrink: 0; }
-.header h1 { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
-.header-meta { font-size: 11px; opacity: 0.7; }
-.stats-bar { background: white; padding: 8px 20px; display: flex; gap: 20px; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
-.stat { text-align: center; }
-.stat-num { font-size: 20px; font-weight: 700; }
-.stat-label { font-size: 10px; color: #718096; }
-.s-total .stat-num { color: #2b6cb0; }
-.s-pend .stat-num  { color: #718096; }
-.s-inc .stat-num   { color: #276749; }
-.s-exc .stat-num   { color: #c53030; }
-.s-dud .stat-num   { color: #c05621; }
-.s-prog { flex: 1; min-width: 150px; }
-.progress-wrap { background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden; }
-.progress-bar  { height: 8px; background: linear-gradient(90deg, #276749, #48bb78); border-radius: 4px; transition: width 0.4s; }
-.progress-label { font-size: 11px; color: #718096; margin-top: 3px; text-align: right; }
-.sync-status { font-size: 11px; display: flex; align-items: center; gap: 5px; }
-.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #68d391; flex-shrink: 0; }
+html, body { height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; color: #2d3748; }
+
+/* ── Layout ─────────────────────────────────────────────────────────── */
+.app { display: flex; flex-direction: column; height: 100vh; }
+.main { display: flex; flex: 1; overflow: hidden; }
+
+/* Panel lista */
+.panel-list { display: flex; flex-direction: column; width: 100%; min-width: 0; overflow: hidden; transition: width 0.3s ease; }
+.panel-list.split { width: 45%; min-width: 320px; }
+
+/* Panel PDF */
+.panel-pdf { display: none; flex-direction: column; flex: 1; border-left: 3px solid #276749; background: #1a202c; }
+.panel-pdf.open { display: flex; }
+.pdf-toolbar { background: #276749; color: white; padding: 8px 14px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.pdf-toolbar-title { font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.9; }
+.pdf-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.pdf-btn:hover { background: rgba(255,255,255,0.35); }
+.pdf-frame { flex: 1; border: none; }
+.pdf-fallback { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px; padding: 30px; }
+.pdf-fallback p { color: #a0aec0; font-size: 13px; text-align: center; line-height: 1.6; }
+.pdf-fallback a { color: #68d391; font-size: 13px; font-weight: 600; text-decoration: none; }
+.pdf-fallback a:hover { text-decoration: underline; }
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+.header { background: #276749; color: white; padding: 10px 16px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+.header-title { flex: 1; }
+.header h1 { font-size: 13px; font-weight: 600; margin-bottom: 1px; }
+.header-meta { font-size: 10px; opacity: 0.8; }
+.rev-wrap { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+.reviewer-select { padding: 4px 8px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.4); font-size: 12px; background: rgba(255,255,255,0.15); color: white; cursor: pointer; }
+.reviewer-select option { background: #276749; }
+.sync-status { font-size: 11px; display: flex; align-items: center; gap: 4px; color: rgba(255,255,255,0.85); }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #68d391; flex-shrink: 0; }
 .sync-dot.loading { background: #f6ad55; animation: pulse 1s infinite; }
-.sync-dot.error   { background: #fc8181; }
+.sync-dot.error { background: #fc8181; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-.filters { background: white; padding: 8px 20px; border-bottom: 1px solid #e2e8f0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
-.reviewer-sel { padding: 5px 10px; border-radius: 6px; border: 1px solid #cbd5e0; font-size: 13px; font-weight: 600; background: white; cursor: pointer; color: #1a252f; }
-.filter-btn { padding: 4px 12px; border-radius: 16px; border: 1px solid #cbd5e0; background: white; font-size: 12px; cursor: pointer; transition: all 0.15s; }
-.filter-btn.active { background: #1a252f; color: white; border-color: #1a252f; }
-.toggle-btn { padding: 5px 14px; background: white; color: #4a5568; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500; white-space: nowrap; }
-.toggle-btn:hover { background: #edf2f7; }
-.toggle-btn.active { background: #f0fff4; color: #276749; border-color: #9ae6b4; }
-.search-box { padding: 5px 10px; border-radius: 6px; border: 1px solid #cbd5e0; font-size: 12px; width: 180px; margin-left: auto; }
-.export-btn { padding: 5px 14px; background: #276749; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; white-space: nowrap; }
-.export-btn:hover { background: #22543d; }
-.main-content { display: flex; flex: 1; overflow: hidden; }
-.list-panel { flex: 1; overflow-y: auto; padding: 12px 16px; transition: flex 0.3s ease; min-width: 0; }
-.pdf-panel { display: none; flex-direction: column; border-left: 3px solid #1a252f; background: #1a252f; flex: 0 0 50%; }
-.pdf-panel.open { display: flex; }
-.pdf-panel-header { background: #1a252f; color: white; padding: 10px 14px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.pdf-panel-title { font-size: 12px; font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pdf-panel-id { font-size: 13px; font-weight: 700; opacity: 0.8; white-space: nowrap; }
-.btn-close-pdf { background: rgba(255,255,255,0.15); border: none; color: white; border-radius: 5px; padding: 4px 12px; font-size: 12px; cursor: pointer; white-space: nowrap; }
-.btn-close-pdf:hover { background: rgba(255,255,255,0.3); }
-.pdf-panel iframe { flex: 1; border: none; background: #525659; }
-.card { background: white; border-radius: 10px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); border-left: 5px solid #cbd5e0; overflow: hidden; }
+
+/* ── Stats ──────────────────────────────────────────────────────────── */
+.stats-bar { background: white; padding: 6px 16px; display: flex; gap: 14px; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
+.stat { text-align: center; min-width: 44px; }
+.stat-num { font-size: 18px; font-weight: 700; }
+.stat-label { font-size: 9px; color: #718096; text-transform: uppercase; }
+.s-total .stat-num { color: #276749; }
+.s-inc .stat-num { color: #276749; }
+.s-exc .stat-num { color: #c53030; }
+.s-pend .stat-num { color: #718096; }
+.s-prog .stat-num { color: #2b6cb0; font-size: 12px; }
+.progress-wrap { background: #e2e8f0; height: 4px; flex-shrink: 0; }
+.progress-bar { height: 4px; background: linear-gradient(to right, #276749, #38a169); transition: width 0.4s; }
+
+/* ── Filtros ─────────────────────────────────────────────────────────── */
+.filters { background: white; padding: 6px 14px; border-bottom: 1px solid #e2e8f0; display: flex; gap: 5px; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
+.filter-btn { padding: 3px 10px; border-radius: 14px; border: 1px solid #cbd5e0; background: white; font-size: 11px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.filter-btn.active { background: #276749; color: white; border-color: #276749; }
+.filter-btn.fi.active { background: #276749; border-color: #276749; }
+.filter-btn.fe.active { background: #c53030; border-color: #c53030; }
+.filter-btn.fc.active { background: #c05621; border-color: #c05621; }
+.search-box { padding: 4px 9px; border-radius: 5px; border: 1px solid #cbd5e0; font-size: 11px; width: 170px; margin-left: auto; }
+.export-btn { padding: 4px 11px; background: #2b6cb0; color: white; border: none; border-radius: 5px; font-size: 11px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.export-btn:hover { background: #2c5282; }
+
+/* ── Cards ───────────────────────────────────────────────────────────── */
+.list-scroll { flex: 1; overflow-y: auto; padding: 10px 12px; }
+
+.card { background: white; border-radius: 7px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); border-left: 4px solid #cbd5e0; }
 .card.di { border-left-color: #276749; }
 .card.de { border-left-color: #c53030; }
-.card.dd { border-left-color: #c05621; }
-.card.viewing { outline: 2px solid #2b6cb0; outline-offset: 1px; }
-.card-head { padding: 10px 14px 6px; cursor: pointer; }
-.card-num   { font-size: 11px; color: #a0aec0; font-weight: 600; margin-bottom: 2px; }
+.card.active-pdf { outline: 2px solid #2b6cb0; outline-offset: 1px; }
+
+.card-head { padding: 10px 12px 6px; }
+.card-badges { display: flex; gap: 5px; align-items: center; margin-bottom: 3px; flex-wrap: wrap; }
+.card-num { font-size: 10px; color: #a0aec0; font-weight: 700; }
+.badge { font-size: 9px; padding: 1px 6px; border-radius: 8px; font-weight: 600; }
+.badge-acuerdo { background: #ebf8ff; color: #2b6cb0; }
+.badge-arbitro { background: #fffbeb; color: #92400e; }
+.badge-doi { background: #f0fff4; color: #276749; }
+.badge-nodoi { background: #fff5f5; color: #c53030; }
 .card-title { font-size: 12px; font-weight: 600; color: #1a202c; line-height: 1.4; margin-bottom: 3px; }
-.card-meta  { font-size: 11px; color: #718096; line-height: 1.5; }
-.pdf-row { display: flex; align-items: center; gap: 8px; padding: 6px 14px; background: #f7fafc; border-top: 1px solid #e2e8f0; }
-.btn-open-pdf { padding: 4px 14px; background: #2b6cb0; color: white; border: none; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
-.btn-open-pdf:hover { background: #2c5282; }
-.btn-open-pdf.active { background: #744210; }
-.pdf-missing { font-size: 11px; color: #c05621; }
-.card-footer { padding: 8px 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-top: 1px solid #e2e8f0; background: #f0fff4; }
-.dec-label { font-size: 11px; font-weight: 700; color: #276749; text-transform: uppercase; letter-spacing: 0.5px; }
-.btn { padding: 5px 14px; border-radius: 7px; border: 2px solid; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; background: white; }
+.card-meta { font-size: 10px; color: #718096; line-height: 1.5; }
+
+.card-footer { padding: 6px 12px 9px; background: #f7fafc; border-top: 1px solid #e2e8f0; display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+.dec-label { font-size: 10px; font-weight: 600; color: #4a5568; white-space: nowrap; }
+.btn { padding: 4px 11px; border-radius: 5px; border: 2px solid; font-size: 10px; font-weight: 600; cursor: pointer; transition: all 0.15s; background: white; white-space: nowrap; }
 .btn-i { border-color: #276749; color: #276749; }
 .btn-i:hover, .btn-i.sel { background: #276749; color: white; }
 .btn-e { border-color: #c53030; color: #c53030; }
 .btn-e:hover, .btn-e.sel { background: #c53030; color: white; }
-.btn-d { border-color: #c05621; color: #c05621; }
-.btn-d:hover, .btn-d.sel { background: #c05621; color: white; }
-.motivo-sel { padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e0; font-size: 11px; background: white; max-width: 240px; }
-.saving { font-size: 11px; color: #276749; margin-left: auto; opacity: 0; transition: opacity 0.3s; }
+.btn-pdf { padding: 4px 11px; border-radius: 5px; border: 2px solid #2b6cb0; color: #2b6cb0; font-size: 10px; font-weight: 600; cursor: pointer; background: white; transition: all 0.15s; white-space: nowrap; }
+.btn-pdf:hover, .btn-pdf.active { background: #2b6cb0; color: white; }
+.motivo-sel { padding: 3px 7px; border-radius: 4px; border: 1px solid #cbd5e0; font-size: 10px; background: white; max-width: 240px; }
+.saving { font-size: 10px; color: #276749; margin-left: auto; opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
 .saving.show { opacity: 1; }
-.empty { text-align: center; padding: 60px 20px; color: #718096; }
-.empty-title { font-size: 16px; font-weight: 600; color: #4a5568; margin-bottom: 8px; }
-.empty-sub { font-size: 13px; }
-.spinner { width: 32px; height: 32px; border: 3px solid #e2e8f0; border-top-color: #2b6cb0; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+.conflict-banner { background: #fffbeb; border: 1px solid #f6ad55; border-radius: 5px; padding: 4px 10px; margin: 0 12px 5px; font-size: 10px; color: #92400e; }
+
+.empty { text-align: center; padding: 50px 20px; }
+.empty-title { font-size: 15px; color: #276749; font-weight: 600; margin-bottom: 6px; }
+.empty-sub { font-size: 12px; color: #718096; }
+.spinner { width: 32px; height: 32px; border: 3px solid #e2e8f0; border-top-color: #276749; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
-<div class="app-wrap">
+<div class="app">
+
+  <!-- HEADER -->
   <div class="header">
-    <h1>Fase 2 — Lectura de Texto Completo · Intervenciones enfermeras para el manejo del dolor procedimental en pediatría</h1>
-    <div class="header-meta">Ana Domínguez · Ángela Miguel · SERMAS / H. Gregorio Marañón</div>
+    <div class="header-title">
+      <h1>Fase 2 — Lectura de Texto Completo · Intervenciones enfermeras para el manejo del dolor procedimental en pediatría</h1>
+      <div class="header-meta">Ana Domínguez · Ángela Miguel · SERMAS / H. Gregorio Marañón</div>
+    </div>
+    <div class="rev-wrap">
+      <select class="reviewer-select" id="revSel" onchange="onReviewerChange()">
+        <option value="">— Selecciona tu perfil —</option>
+        <option value="R1">Revisora 1 — Ana</option>
+        <option value="R2">Revisora 2 — Ángela</option>
+      </select>
+      <div class="sync-status">
+        <div class="sync-dot loading" id="syncDot"></div>
+        <span id="syncMsg">Cargando...</span>
+      </div>
+    </div>
   </div>
+
+  <!-- STATS -->
   <div class="stats-bar">
-    <div class="stat s-total"><div class="stat-num" id="stTotal">69</div><div class="stat-label">Total</div></div>
-    <div class="stat s-inc"><div class="stat-num" id="stInc">0</div><div class="stat-label">Incluir</div></div>
-    <div class="stat s-exc"><div class="stat-num" id="stExc">0</div><div class="stat-label">Excluir</div></div>
-    <div class="stat s-dud"><div class="stat-num" id="stDud">0</div><div class="stat-label">Dudoso</div></div>
-    <div class="stat s-pend"><div class="stat-num" id="stPend">69</div><div class="stat-label">Pendiente</div></div>
-    <div class="s-prog">
-      <div class="progress-wrap"><div class="progress-bar" id="progBar" style="width:0%"></div></div>
-      <div class="progress-label" id="progLabel">0 de 69 revisados</div>
-    </div>
-    <div class="sync-status">
-      <div class="sync-dot loading" id="syncDot"></div>
-      <span id="syncMsg">Cargando...</span>
-    </div>
+    <div class="stat s-total"><div class="stat-num" id="stTotal">67</div><div class="stat-label">Total</div></div>
+    <div class="stat s-inc"><div class="stat-num" id="stInc">—</div><div class="stat-label">Incluir</div></div>
+    <div class="stat s-exc"><div class="stat-num" id="stExc">—</div><div class="stat-label">Excluir</div></div>
+    <div class="stat s-pend"><div class="stat-num" id="stPend">—</div><div class="stat-label">Pendiente</div></div>
+    <div class="stat s-prog"><div class="stat-num" id="stProg">0 de 67 revisados</div></div>
   </div>
+  <div class="progress-wrap"><div class="progress-bar" id="progBar" style="width:0"></div></div>
+
+  <!-- FILTROS -->
   <div class="filters">
-    <select class="reviewer-sel" id="revSel" onchange="onReviewerChange()">
-      <option value="">— Selecciona tu perfil —</option>
-      <option value="R1">Revisora 1 — Ana</option>
-      <option value="R2">Revisora 2 — Ángela</option>
-    </select>
     <button class="filter-btn active" onclick="setFilter('todos',this)">Todos</button>
     <button class="filter-btn" onclick="setFilter('pendiente',this)">⏳ Pendiente</button>
-    <button class="filter-btn" onclick="setFilter('INCLUIR',this)">✓ Incluir</button>
-    <button class="filter-btn" onclick="setFilter('EXCLUIR',this)">✗ Excluir</button>
-    <button class="filter-btn" onclick="setFilter('DUDOSO',this)">? Dudoso</button>
-    <button class="toggle-btn active" id="toggleHideBtn" onclick="toggleHideDecided()">👁 Mostrar cribados</button>
-    <input class="search-box" id="searchBox" placeholder="Buscar título o autor..." oninput="renderList()">
+    <button class="filter-btn fi" onclick="setFilter('INCLUIR',this)">✓ Incluir</button>
+    <button class="filter-btn fe" onclick="setFilter('EXCLUIR',this)">✗ Excluir</button>
+    <button class="filter-btn fc" onclick="setFilter('conflicto',this)">⚠ Conflictos</button>
+    <button class="filter-btn" id="toggleHideBtn" onclick="toggleHide()">👁 Mostrar cribados</button>
+    <input class="search-box" id="searchBox" placeholder="Buscar título, autor, DOI..." oninput="renderList()">
     <button class="export-btn" onclick="exportCSV()">⬇ Exportar</button>
   </div>
-  <div class="main-content">
-    <div class="list-panel" id="listPanel">
-      <div class="empty"><div class="spinner"></div><p>Cargando datos...</p></div>
-    </div>
-    <div class="pdf-panel" id="pdfPanel">
-      <div class="pdf-panel-header">
-        <span class="pdf-panel-id" id="pdfPanelId"></span>
-        <span class="pdf-panel-title" id="pdfPanelTitle"></span>
-        <button class="btn-close-pdf" onclick="closePdfPanel()">✕ Cerrar</button>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- Panel lista -->
+    <div class="panel-list" id="panelList">
+      <div class="list-scroll" id="articleList">
+        <div class="empty"><div class="spinner"></div><p style="color:#718096;font-size:13px;">Cargando datos del servidor...</p></div>
       </div>
-      <iframe id="pdfFrame" src="" title="Visor PDF"></iframe>
     </div>
+
+    <!-- Panel PDF -->
+    <div class="panel-pdf" id="panelPdf">
+      <div class="pdf-toolbar">
+        <span class="pdf-toolbar-title" id="pdfTitle">—</span>
+        <button class="pdf-btn" id="pdfTabBtn" onclick="openInTab()">↗ Nueva pestaña</button>
+        <button class="pdf-btn" onclick="closePdf()">✕ Cerrar</button>
+      </div>
+      <iframe class="pdf-frame" id="pdfFrame" src="about:blank" allowfullscreen></iframe>
+    </div>
+
   </div>
 </div>
+
 <script>
-const SCRIPT   = "https://script.google.com/macros/s/AKfycbz1hC1dIQSp-KYNQQOk4NjenO_9ULXa3zJgw3wP6RDLqypaNfgoVl4bY5YgumqWhjvv/exec";
-const PDF_BASE = "https://anadominguezro-lab.github.io/cribado-rs-pdfs/";
+const SCRIPT = "https://script.google.com/macros/s/AKfycbwnfdf03pp62l4tY-NTtzFB0ybywlwaQl8w9hzYVtal7uDsCxCubYc_FZa6E2z0DZbM/exec";
 
-const MOTIVOS = ["","E1 — Población oncológica activa","E2 — Neonatos en UCI neonatal","E3 — Dolor crónico no procedimental","E4 — Ámbito quirúrgico / UCI","E5 — Intervención no realizada por enfermería","E6 — Publicado antes de 2014","E7 — Tipo de artículo no válido","E8 — Sin escala de dolor validada","E9 — Texto completo no disponible"];
-
-const ARTICLES = [
-  {id:6,  title:"Paediatric Pain Medicine: Pain Differences, Recognition and Coping Acute Procedural Pain in Paediatric Emergency Room.", authors:"Pancekauskaitė G, Jankauskaitė L", journal:"Medicina (Kaunas)", year:"2018"},
-  {id:8,  title:"The effect of virtual reality on pain, fear, and anxiety during access of a port with huber needle in pediatric hematology-oncology patients.", authors:"Gerçeker GÖ, Bektaş M, Aydınok Y et al.", journal:"Eur J Oncol Nurs", year:"2021"},
-  {id:22, title:"Acute pain management in children: challenges and recent improvements.", authors:"Ferland CE, Vega E, Ingelmo PM", journal:"Curr Opin Anaesthesiol", year:"2018"},
-  {id:29, title:"Increasing nursing treatment for pediatric procedural pain.", authors:"Bice AA, Gunther M, Wyatt T", journal:"Pain Manag Nurs", year:"2014"},
-  {id:53, title:"A Systematic Review of Clinical Practice Guidelines for Acute Procedural Pain on Neonates.", authors:"Balice-Bourgois C, Zumstein-Shaha M, Vanoni F et al.", journal:"Clin J Pain", year:"2020"},
-  {id:54, title:"Cognitive load and the effectiveness of distraction for acute pain in children.", authors:"Gaultney WM, Dahlquist LM, Quiton RL", journal:"Eur J Pain", year:"2021"},
-  {id:56, title:"Pain management associated with arteriovenous fistula cannulation among children undergoing haemodialysis: Systematic review.", authors:"Zukhra RM, Wanda D", journal:"JPMA", year:"2024"},
-  {id:62, title:"Blood Sampling in Newborns: A Systematic Review of YouTube Videos.", authors:"Bueno M, Nishi ET, Costa T", journal:"J Perinat Neonatal Nurs", year:"2017"},
-  {id:68, title:"Updates in Pediatric Regional Anesthesia and Its Role in the Treatment of Acute Pain in the Ambulatory Setting.", authors:"Stein ALS, Baumgard D, Del Rio I, Tutiven JL", journal:"Curr Pain Headache Rep", year:"2017"},
-  {id:72, title:"The Effectiveness of Distraction as Procedural Pain Management Technique in Pediatric Oncology Patients: A Meta-analysis and Systematic Review.", authors:"Bukola IM, Paula D", journal:"J Pain Symptom Manage", year:"2017"},
-  {id:98, title:"Control effect of virtual reality technology on procedural pain in children's wound: A meta-analysis.", authors:"Li T, Fu Y, Yang Y et al.", journal:"Medicine", year:"2022"},
-  {id:101,title:"The efficacy of socially assistive robots in improving children's pain and negative affectivity during needle-based invasive treatment.", authors:"Pan XY, Bi XY, Nong YN, Ye XC", journal:"BMC Pediatrics", year:"2024"},
-  {id:104,title:"Pain prevalence, intensity, assessment and management in a hospitalized pediatric population.", authors:"Kozlowski LJ, Kost-Byerly S, Colantuoni E", journal:"Pain Manag Nurs", year:"2014"},
-  {id:106,title:"Updates From the Other Side of the Drape: Recent Advances in Multimodal Pain Management and Opioid Reduction Among Pediatric Surgical Patients.", authors:"Franklin AD, Tsao K, Barq R", journal:"J Pediatr Surg", year:"2024"},
-  {id:111,title:"Quantification of neonatal procedural pain severity: a platform for estimating total pain burden in individual infants.", authors:"Laudiano-Dray MP, Pillai Riddell R, Jones L", journal:"Pain", year:"2020"},
-  {id:113,title:"Multisensory stimulation as a non-pharmacological intervention for neonates undergoing painful procedures: A scoping review.", authors:"Sharma N, Samuel AJ", journal:"J Neonatal Perinat Med", year:"2022"},
-  {id:123,title:"Impact of a Strategy for Improving Early Management of Acute Pain in the Pediatric Emergency Department.", authors:"Storch-De-Gracia P, Salido D, Molina A et al.", journal:"Pediatr Emerg Care", year:"2024"},
-  {id:126,title:"Massage therapy as a non-pharmacological analgesia for procedural pain in neonates: A scoping review.", authors:"Fitri SYR, Nasution SK, Nurhidayah I", journal:"Complement Ther Med", year:"2021"},
-  {id:129,title:"The effect of facilitated tucking position during painful procedure in pain management of preterm infants: a systematic review and meta-analysis.", authors:"Gomes Neto M, da Silva Lopes IA, Araujo AC", journal:"Eur J Pediatr", year:"2020"},
-  {id:133,title:"A Narrative Review of Pain in Pediatric Oncology: The Opioid Option for Procedural and Surgical Pain.", authors:"Hall EA, Shelton CM, Hagemann TM", journal:"Paediatr Drugs", year:"2025"},
-  {id:143,title:"Improving Consistency in the Use of Sucrose With Comfort Measures During Minor Painful Procedures.", authors:"", journal:"Adv Neonatal Care", year:"2023"},
-  {id:146,title:"Efficacy of the Buzzy® device for pain management of children during needle-related procedures: a systematic review protocol.", authors:"Ballard A, Khadra C, Adler S", journal:"Syst Rev", year:"2018"},
-  {id:147,title:"Oxycodone target concentration dosing for acute pain in children.", authors:"Morse JD, Hannam JA, Anderson BJ", journal:"Paediatr Anaesth", year:"2021"},
-  {id:152,title:"Comparing N-PASS and NIPS: Improving Pain Measurement in the Neonate.", authors:"Desai A, Aucott S, Frank K, Silbert-Flagg J", journal:"Adv Neonatal Care", year:"2018"},
-  {id:162,title:"Interactive Versus Passive Distraction and Parent Psychoeducation as Pain Management Techniques During Pediatric Venepuncture: A Randomized Controlled Trial.", authors:"Newell A, Keane J, McGuire BE", journal:"Clin J Pain", year:"2018"},
-  {id:168,title:"Preemptive analgesia for acute postoperative pain management in children.", authors:"Sener M", journal:"Paediatr Anaesth", year:"2016"},
-  {id:173,title:"A randomized controlled trial on virtual reality distraction during venous cannulation in young children.", authors:"Thybo KH, Friis SM, Aagaard G et al.", journal:"Acta Anaesthesiol Scand", year:"2022"},
-  {id:177,title:"Factors Influencing Parental Decision-Making Regarding Analgesia for Children with Musculoskeletal Injury-Related Pain.", authors:"Ali S, Dworsky-Fried Z, Moir M", journal:"J Pediatr", year:"2023"},
-  {id:178,title:"Pain control at the vaccine injection site: new insights.", authors:"Edwards KM, Booy R", journal:"J Travel Med", year:"2019"},
-  {id:186,title:"Acute Pain Assessment in Prematurely Born Infants Below 29 Weeks: A Long Way to Go.", authors:"Meesters NJ, Simons SHP, van Rosmalen J", journal:"Clin J Pain", year:"2019"},
-  {id:192,title:"Animated video reduces pain and anxiety during pin removal in children with supracondylar humerus fractures.", authors:"Akan İ, Bacaksız T, Bozoğlan M", journal:"Arch Orthop Trauma Surg", year:"2024"},
-  {id:193,title:"Effects of stepwise acute pain management on acute pain and post-traumatic stress disorder in children with burns.", authors:"Wang YQ, Huang JQ, Wu ZH, Chen JJ", journal:"Chin J Burns", year:"2021"},
-  {id:195,title:"Degree of knowledge of health care professionals about pain management and use of opioids in pediatrics.", authors:"de Freitas GRM, de Castro CG Jr", journal:"Pain Med", year:"2014"},
-  {id:200,title:"Analgesia by cooling vibration during venipuncture in children with cognitive impairment.", authors:"Schreiber S, Cozzi G, Rutigliano R", journal:"Acta Paediatr", year:"2016"},
-  {id:208,title:"High-Dose Opioid Prescribing in Individuals with Acute Pain: Assessing the Effects of US State Opioid Policies.", authors:"Bradford AC, Nguyen T, Schulson L", journal:"J Gen Intern Med", year:"2024"},
-  {id:224,title:"Addressing challenges of clinical trials in acute pain: The Pain Management of Vaso-occlusive Crisis in Children.", authors:"Nottage KA, Hankins JS, Faughnan LG", journal:"Clin Trials", year:"2016"},
-  {id:227,title:"The effect of hospital clown nurse on children's compliance to burn dressing change.", authors:"Yildirim M, Koroglu E, Yucel C, Kirlak S", journal:"Burns", year:"2019"},
-  {id:229,title:"Active production of music as distraction for venipuncture in children and adolescents: a randomized clinical trial.", authors:"Obersnel M, Nardin B, Canepari E, Torelli L", journal:"Eur J Pediatr", year:"2023"},
-  {id:230,title:"Multisensory stimulation to reduce procedural pain in retinopathy of prematurity: A randomized controlled trial.", authors:"Tasdemir HI", journal:"Nurs Crit Care", year:"2025"},
-  {id:233,title:"Parental presence during painful or invasive procedures in neonatology: A survey of healthcare professionals.", authors:"Ponthier L, Ensuque P, Guigonis V, Bedu A", journal:"Arch Pediatr", year:"2020"},
-  {id:234,title:"Comparison of effect of kangaroo mother care, breastfeeding and swaddling on BCG vaccination pain score in healthy term neonates.", authors:"Fallah R, Naserzadeh N, Ferdosian F, Binesh F", journal:"J Matern Fetal Neonatal Med", year:"2017"},
-  {id:235,title:"Acceptability and Usability of Smileyscope Virtual Reality for Paediatric Pain Management During Burn Procedures.", authors:"Storey K, Dimanopoulos TA, Plummer K, Kimble R", journal:"J Adv Nurs", year:"2025"},
-  {id:246,title:"Effectiveness of Sucrose Used Routinely for Pain Relief and Neonatal Clinical Risk in Preterm Infants.", authors:"Valeri BO, Gaspardo CM, Martinez FE", journal:"Clin J Pain", year:"2018"},
-  {id:252,title:"Comment on De Clifford-Faugere et al. (2020) — olfactive stimulation interventions to manage procedural pain.", authors:"Goubet N, Rattaz C, Pierrat V", journal:"Int J Nurs Stud", year:"2022"},
-  {id:255,title:"Nonpharmacological techniques to reduce pain in preterm infants who receive heel-lance procedure: a randomized controlled trial.", authors:"Bergomi P, Chieppi M, Maini A", journal:"Res Theory Nurs Pract", year:"2014"},
-  {id:256,title:"Oligoanalgesia in Patients With an Initial Glasgow Coma Scale Score ≥8 in a Physician-Staffed Helicopter Emergency Medical Service.", authors:"Helm M, Hossfeld B, Braun B", journal:"Anesth Analg", year:"2020"},
-  {id:260,title:"The Impact of 3 Different Distraction Techniques on the Pain and Anxiety Levels of Children During Venipuncture.", authors:"Inan G, Inal S", journal:"Clin J Pain", year:"2019"},
-  {id:266,title:"Pre-attendance analgesia advice for small acute paediatric burns in the British Isles: A National Survey.", authors:"Chu H, Sen S", journal:"Burns", year:"2020"},
-  {id:267,title:"Repeating a dose of sucrose for heel prick procedure in preterms is not effective in reducing pain: a randomised controlled trial.", authors:"Lago P, Cavicchiolo ME, Mion T", journal:"Eur J Pediatr", year:"2020"},
-  {id:270,title:"Is caregiver refusal of analgesics a barrier to pediatric emergency pain management?", authors:"Whiston C, Ali S, Wright B", journal:"CJEM", year:"2018"},
-  {id:271,title:"Combined non-pharmacological interventions for newborn pain relief in two degrees of pain procedures.", authors:"Leng HY, Zheng XL, Zhang XH, He HY", journal:"Eur J Pain", year:"2016"},
-  {id:281,title:"Sweet tasting solutions for reduction of needle-related procedural pain in children aged one to 16 years.", authors:"Harrison D, Yamada J, Adams-Webber T, Ohlsson A", journal:"Cochrane Database Syst Rev", year:"2015"},
-  {id:286,title:"Virtual reality distraction for acute pain in children.", authors:"Lambert V, Boylan P, Boran L et al.", journal:"Cochrane Database Syst Rev", year:"2020"},
-  {id:291,title:"Postoperative epidural analgesia versus systemic analgesia for thoraco-lumbar spine surgery in children.", authors:"Guay J, Suresh S, Kopp S, Johnson RL", journal:"Cochrane Database Syst Rev", year:"2019"},
-  {id:295,title:"Venopunción frente a la incisión en el talón para el cribado de enfermedades endocrino-metabólicas en el recién nacido.", authors:"Rubiño Díaz JA, Personat Labrador C et al.", journal:"", year:"2023"},
-  {id:296,title:"Eficacia del óxido nitroso como sedoanalgesia en pacientes pediátricos para procedimientos menores.", authors:"Méndez López C, García Hernández MN", journal:"Rev ROL Enferm", year:"2023"},
-  {id:299,title:"Frenillo lingual, anquiloglosia y lactancia materna.", authors:"Rossato NE", journal:"Arch Argent Pediatr", year:"2025"},
-  {id:301,title:"Diagnósticos e intervenções de enfermagem em crianças em pósoperatório imediato de queiloplastia.", authors:"Galdino MFG, Batista NT", journal:"Enferm Foco", year:"2024"},
-  {id:304,title:"Utilization of local pressure devices in pain management during injections: scoping review.", authors:"Moura JWS, Bitencourt AS", journal:"Rev Bras Enferm", year:"2024"},
-  {id:309,title:"Uso da realidade virtual durante a punção venosa em crianças hospitalizadas: estudo descritivo.", authors:"Ribeiro DL, Barbieri A, Uema RT", journal:"Online Braz J Nurs", year:"2022"},
-  {id:313,title:"Nursing theories developed to meet children's needs: a scoping review.", authors:"Dantas AMN, Santos-Rodrigues RC", journal:"Rev Esc Enferm USP", year:"2022"},
-  {id:319,title:"Cuidado e desenvolvimento do recém-nascido prematuro em unidade de terapia intensiva neonatal: revisão de escopo.", authors:"Martins KP, Freire MH", journal:"REME Rev Min Enferm", year:"2021"},
-  {id:322,title:"Procedimientos de sedoanalgesia en emergencias: cuidados de enfermería.", authors:"Reinoso G, Acosta C, Vizcarra D", journal:"Med Infant", year:"2020"},
-  {id:327,title:"Treinamento online sobre avaliação da dor neonatal para enfermeiros de um hospital de ensino.", authors:"Costa T", journal:"", year:"2020"},
-  {id:330,title:"Questions of informal caregivers of children regarding the postoperative period of cochlear implant.", authors:"Almeida RJ, Cunha GFM", journal:"Rev Bras Enferm", year:"2019"},
-  {id:331,title:"Efectividad de un protocolo para la atención del dolor en neonatos menores de 1 500 gramos.", authors:"Robaina Castellanos GR, Pérez Llorca L", journal:"Rev Cuba Pediatr", year:"2019"},
-  {id:338,title:"Efetividade da cobertura de silicone no tratamento de queimaduras em pacientes pediátricos: revisão sistemática.", authors:"Santos PM", journal:"", year:"2018"},
-  {id:339,title:"Brazilian Neonatal Nurses' Palliative Care Experiences.", authors:"de Castro de Oliveira F, Cleveland LM", journal:"J Perinat Neonatal Nurs", year:"2018"},
-  {id:374,title:"Relaciones interpersonales en el nuevo modelo de atención sanitarista al niño con dolor.", authors:"Collado Madurga AM, Odales Ibarra R", journal:"Rev Cuba Pediatr", year:"2014"}
+const CRITERIOS = [
+  "",
+  "E1 — Población oncológica activa",
+  "E2 — Neonatos en UCI neonatal",
+  "E3 — Dolor crónico no procedimental",
+  "E4 — Ámbito quirúrgico/UCI",
+  "E5 — Intervención no realizada por enfermería",
+  "E6 — Publicado antes de 2014",
+  "E7 — Tipo de artículo no válido",
+  "E8 — Sin escala de dolor validada",
+  "E9 — Texto completo no disponible"
 ];
 
-const PDF_IDS = new Set();
-let decisions = {}, currentReviewer = '', currentFilter = 'todos';
-let hideDecided = true, temporarilyVisible = new Set();
-let saveQueue = {}, isSaving = false, dataLoaded = false, currentPdfId = null;
+const ARTICULOS = [
+  {"id": 8, "titulo": "Acceptability and Usability of Smileyscope Virtual Reality for Paediatric Pain Management During Burn Procedures: Perspectives of Patients, Carers and Clinicians.", "autores": "Storey, Kristen; Dimanopoulos, Tanesha A.; Plummer, Karin; Kimble, Roy; Xiang, H", "revista": "Journal of advanced nursing", "anio": "", "doi": "10.1111/jan.16417", "url": "", "tipo": "arbitro"},
+  {"id": 22, "titulo": "Virtual Reality Distraction for Needle-Related Pain and Distress in Children: A Multicenter Randomized Controlled Trial.", "autores": "Czub, Marcin; Serrano-Ibáñez, Elena R.; Piskorz, Joanna; Esteve, Rosa; Lydon, He", "revista": "Cyberpsychology, behavior", "anio": "", "doi": "10.1089/cyber.2023.0454", "url": "", "tipo": "acuerdo"},
+  {"id": 29, "titulo": "Parenting pain away: Quasi-experimental study of an eHealth learning platform to evaluate acceptability, feasibility, and utilisation of parent-led pain management.", "autores": "Hughes, Brianna; Martin-Misener, Ruth; Latimer, Margot; Smit, Michael; McGrath,", "revista": "Scandinavian journal of caring", "anio": "", "doi": "10.1111/scs.13297", "url": "", "tipo": "arbitro"},
+  {"id": 53, "titulo": "The effect of using maternal voice, white noise, and holding combination interventions on the heel stick sampling.", "autores": "Apaydin Cirik, Vildan; Gül, U■ur; Kihtir, Zeynep; Arayici, Sema; Efe, Emine; Çak", "revista": "Journal of pediatric nursing", "anio": "2023", "doi": "10.1016/j.pedn.2023.01.005", "url": "", "tipo": "acuerdo"},
+  {"id": 54, "titulo": "Effectiveness of non-immersive virtual reality in the management of procedure-related pain in preschool children: a randomized clinical trial.", "autores": "Camacho-Cruz, Jhon; Palacios-Ariza, María A.; Orrego-Celestino, Luisa; Valbuena-", "revista": "European journal of pediatrics", "anio": "", "doi": "10.1007/s00431-023-05070-5", "url": "", "tipo": "acuerdo"},
+  {"id": 62, "titulo": "Virtual reality and noise canceling headphone distraction during pediatric dermatologic procedures.", "autores": "Jaquez, Sasha D.; Haller, Courtney N.; England, Maryann E.; Bruinsma, Raquel L.;", "revista": "Pediatric dermatology", "anio": "2023", "doi": "10.1111/pde.15401", "url": "", "tipo": "arbitro"},
+  {"id": 68, "titulo": "Effect of a Virtual Reality Environment Using a Domed Ceiling Screen on Procedural Pain During Intravenous Placement in Young Children: A Randomized Clinical Trial.", "autores": "Lee, Ha Ni; Park, Joong Wan; Hwang, Soyun; Jung, Jae Yun; Kim, Do Kyun; Kwak, Yo", "revista": "JAMA pediatrics", "anio": "2023", "doi": "10.1001/jamapediatrics.2022.4426", "url": "", "tipo": "acuerdo"},
+  {"id": 72, "titulo": "Eficacia del óxido nitroso como sedoanalgesia en pacientes pediátricos para procedimientos menores en áreas de hospitalización y urgencias", "autores": "Méndez López, Cathaysa; García Hernández, María Noelia", "revista": "Revista ROL de enfermería", "anio": "2023", "doi": "", "url": "", "tipo": "arbitro"},
+  {"id": 98, "titulo": "Tablet personal computer distraction during intravenous placement for young children in the pediatric emergency department: A pilot study.", "autores": "Lee, Ha Ni; Hwang, Soyun; Jung, Jae Yun; Park, Joong Wan; Kim, Do Kyun; Kwak, Yo", "revista": "Pediatrics international :", "anio": "", "doi": "10.1111/ped.15150", "url": "", "tipo": "acuerdo"},
+  {"id": 101, "titulo": "The perceptions and practices of parents and children on acute pain management among hospitalized children in two Botswana referral hospitals.", "autores": "Matula, Samuel T.; Irving, Sharon Y.; Deatrick, Janet A.; Steenhoff, Andrew P.;", "revista": "Journal of pediatric nursing", "anio": "2022", "doi": "10.1016/j.pedn.2022.02.004", "url": "", "tipo": "acuerdo"},
+  {"id": 104, "titulo": "Uso da realidade virtual durante a punção venosa em crianças hospitalizadas: estudo descritivo", "autores": "Ribeiro, Daiane Lopes; Barbieri, Aline; Uema, Roberta Tognollo Borotta; Shibukaw", "revista": "Online braz. j. nurs. (Online)", "anio": "", "doi": "10.17665/1676-4285.20226588", "url": "", "tipo": "acuerdo"},
+  {"id": 106, "titulo": "A randomized controlled trial on virtual reality distraction during venous cannulation in young children.", "autores": "Thybo, Kasper H.; Friis, Susanne M.; Aagaard, Gitte; Jensen, Claus S.; Dyekjaer,", "revista": "Acta anaesthesiologica", "anio": "", "doi": "10.1111/aas.14120", "url": "", "tipo": "acuerdo"},
+  {"id": 111, "titulo": "A randomized trial of robot-based distraction to reduce children's distress and pain during intravenous insertion in the emergency department.", "autores": "Ali, Samina; Manaloor, Robin; Ma, Keon; Sivakumar, Mithra; Beran, Tanya; Scott,", "revista": "CJEM", "anio": "2021", "doi": "10.1007/s43678-020-00023-5", "url": "", "tipo": "acuerdo"},
+  {"id": 113, "titulo": "Pediatric Pain Remains Undertreated.", "autores": "Beal, Judy A.", "revista": "MCN. The American journal of maternal child nursing", "anio": "2021", "doi": "10.1097/NMC.0000000000000745", "url": "", "tipo": "arbitro"},
+  {"id": 123, "titulo": "Cognitive load and the effectiveness of distraction for acute pain in children.", "autores": "Gaultney, Wendy M.; Dahlquist, Lynnda M.; Quiton, Raimi L.", "revista": "European journal of pain (London, England)", "anio": "2021", "doi": "10.1002/ejp.1770", "url": "", "tipo": "acuerdo"},
+  {"id": 126, "titulo": "Using Social Media to Disseminate Effective Pain Treatments for Newborns During Needle-Related Painful Procedures in China.", "autores": "Hu, Jiale; Xue, Feng; Zhou, Yiyan; Liu, Yuxiao; Li, Qingge; Deng, Jun; Harrison,", "revista": "The Journal of perinatal &", "anio": "", "doi": "10.1097/JPN.0000000000000602", "url": "", "tipo": "acuerdo"},
+  {"id": 129, "titulo": "Contato pele a pele e amamentação no alívio da dor do recém-nascido submetido à punção do calcanhar no alojamento conjunto: estudo piloto de ensaio clínico randomizado", "autores": "Magesti, Bruna Nunes", "revista": "2021", "anio": "", "doi": "", "url": "objdig.ufrj.br/51/teses/950890.pdf", "tipo": "acuerdo"},
+  {"id": 133, "titulo": "Distraction in the Emergency department using Virtual reality for INtravenous procedures in Children to Improve comfort (DEVINCI): a pilot pragmatic randomized controlled trial.", "autores": "Osmanlliu, Esli; Trottier, Evelyne D.; Bailey, Benoit; Lagacé, Maryse; Certain,", "revista": "CJEM", "anio": "2021", "doi": "10.1007/s43678-020-00006-6", "url": "", "tipo": "acuerdo"},
+  {"id": 143, "titulo": "Effect of acupressure on procedural pain before heel lancing in neonates.", "autores": "Tanju, O■ul; Fatma Yilmaz, Kurt", "revista": "Journal of traditional Chinese medicine = Chung i tsa chih ying wen pan", "anio": "2021", "doi": "", "url": "", "tipo": "acuerdo"},
+  {"id": 146, "titulo": "Active and Passive Distraction Interventions in a Pediatric Emergency Department to Reduce the Pain and Anxiety During Venous Blood Sampling: A Randomized Clinical Trial.", "autores": "Ar■kan, Aylin; Esenay, Figen I■■k", "revista": "Journal of emergency nursing", "anio": "2020", "doi": "10.1016/j.jen.2020.05.004", "url": "", "tipo": "acuerdo"},
+  {"id": 147, "titulo": "Increasing the cooperation of children during procedures using a high-tech device.", "autores": "Ashique, Karalikkattil T.; Kaliyadan, Feroze", "revista": "Journal of the American Academy of Dermatology", "anio": "2020", "doi": "10.1016/j.jaad.2018.07.023", "url": "", "tipo": "arbitro"},
+  {"id": 152, "titulo": "Comparing the Analgesic Effects of 4 Nonpharmacologic Interventions on Term Newborns Undergoing Heel Lance: A Randomized Controlled Trial.", "autores": "Chang, Jie; Filoteo, Lourdes; Nasr, Annette S.", "revista": "The Journal of perinatal & neonatal nursing", "anio": "2020", "doi": "10.1097/JPN.0000000000000495", "url": "", "tipo": "acuerdo"},
+  {"id": 162, "titulo": "Evolution in acute pain assessment and treatment in the paediatric emergency department of a tertiary health care centre.", "autores": "Ganzijeva, Kristina; Kindereviciute, Ieva; Dagys, Algirdas; Jankauskaite, Lina", "revista": "European journal of pain (London,", "anio": "", "doi": "10.1002/ejp.1527", "url": "", "tipo": "acuerdo"},
+  {"id": 168, "titulo": "Repeating a dose of sucrose for heel prick procedure in preterms is not effective in reducing pain: a randomised controlled trial.", "autores": "Lago, Paola; Cavicchiolo, Maria Elena; Mion, Teresa; Dal Cengio, Valentina; Alle", "revista": "European journal of pediatrics", "anio": "", "doi": "10.1007/s00431-019-03509-2", "url": "", "tipo": "acuerdo"},
+  {"id": 173, "titulo": "The effectiveness of parental distraction during children's acute pain: The moderating effect of socioeconomic status.", "autores": "Moore, Shannon V.; Lecarie, Emma K.; Davis, Mary C.; Lemery-Chalfant, Kathryn", "revista": "European journal of pain (London,", "anio": "", "doi": "10.1002/ejp.1653", "url": "", "tipo": "acuerdo"},
+  {"id": 177, "titulo": "Study protocol: parents as pain management in Swedish neonatal care - SWEpap, a multi-center randomized controlled trial.", "autores": "Olsson, Emma; Carlsen Misic, Martina; Dovland Andersen, Randi; Ericson, Jenny; E", "revista": "BMC pediatrics", "anio": "2020", "doi": "10.1186/s12887-020-02356-7", "url": "", "tipo": "arbitro"},
+  {"id": 178, "titulo": "Parental presence during painful or invasive procedures in neonatology: A survey of healthcare professionals.", "autores": "Ponthier, L.; Ensuque, P.; Guigonis, V.; Bedu, A.; Bahans, C.; Teynie, F.; Medre", "revista": "Archives de pediatrie : organe", "anio": "", "doi": "10.1016/j.arcped.2020.06.011", "url": "", "tipo": "acuerdo"},
+  {"id": 186, "titulo": "Comparing the Analgesic Effects of Four Nonpharmacologic Interventions on Term Newborns Undergoing Heel Lance: A Randomized Controlled Trial.", "autores": "The Journal of perinatal & neonatal nursing", "revista": "2020", "anio": "", "doi": "10.1097/JPN.0000000000000532", "url": "", "tipo": "arbitro"},
+  {"id": 192, "titulo": "Correlational analysis between potentially painful procedures and pain control strategies in a neonatal unit", "autores": "Costa, Anna Caroline Leite; Araújo, Fernanda Lopes de; Simão, Delma Aurélia da S", "revista": "Texto & contexto enferm", "anio": "", "doi": "10.1590/1980-265x-tce-2018-0299", "url": "", "tipo": "arbitro"},
+  {"id": 193, "titulo": "Immunization-Associated Pain: Taking Research to the Bedside.", "autores": "Cwynar, Christina M.; Osborne, Kathryn", "revista": "Journal of pediatric health care : official publication of National Association", "anio": "", "doi": "10.1016/j.pedhc.2018.12.004", "url": "", "tipo": "acuerdo"},
+  {"id": 195, "titulo": "Pain control at the vaccine injection site: new insights.", "autores": "Edwards, Kate M.; Booy, Robert", "revista": "Journal of travel medicine", "anio": "2019", "doi": "10.1093/jtm/taz053", "url": "", "tipo": "acuerdo"},
+  {"id": 200, "titulo": "The Impact of 3 Different Distraction Techniques on the Pain and Anxiety Levels of Children During Venipuncture: A Clinical Trial.", "autores": "Inan, Gamze; Inal, Sevil", "revista": "The Clinical journal of pain", "anio": "2019", "doi": "10.1097/AJP.0000000000000666", "url": "", "tipo": "acuerdo"},
+  {"id": 208, "titulo": "(Non) Pharmacological Modalities in Acute Procedural Pain.", "autores": "Najafi, Nadia; Forget, Patrice; Poelaert, Jan", "revista": "The Clinical journal of pain", "anio": "2019", "doi": "10.1097/AJP.0000000000000687", "url": "", "tipo": "arbitro"},
+  {"id": 224, "titulo": "Tokenism or true partnership: Parental involvement in a child's acute pain care.", "autores": "Vasey, Jackie; Smith, Joanna; Kirshbaum, Marilynne N.; Chirema, Kathleen", "revista": "Journal of clinical nursing", "anio": "2019", "doi": "10.1111/jocn.14747", "url": "", "tipo": "arbitro"},
+  {"id": 227, "titulo": "[Design and application of mobile soothing screen for dressing change of children with burns of limb].", "autores": "Wu, W. W.; Cheng, D.; Cai, D.; He, T. T.; Zhang, H. W.", "revista": "Zhonghua shao shang za zhi = Zhonghua shaoshang zazhi =", "anio": "", "doi": "10.3760/cma.j.issn.1009-2587.2019.08.016", "url": "", "tipo": "acuerdo"},
+  {"id": 229, "titulo": "The effect of hospital clown nurse on children's compliance to burn dressing change.", "autores": "Yildirim, Meltem; Koroglu, Ecem; Yucel, Cagla; Kirlak, Senay; Sen, Sevim", "revista": "Burns : journal of the International Society", "anio": "", "doi": "10.1016/j.burns.2018.08.033", "url": "", "tipo": "acuerdo"},
+  {"id": 230, "titulo": "Children Listening to Music or Watching Cartoons During ER Procedures: A RCT.", "autores": "van der Heijden, Marianne J. E.; Mevius, Hiske; van der Heijde, Nicky; van Rosma", "revista": "Journal of pediatric psychology", "anio": "", "doi": "10.1093/jpepsy/jsz066", "url": "", "tipo": "acuerdo"},
+  {"id": 233, "titulo": "Cuidado del dolor en el neonato: eficacia de la leche materna o sacarosa", "autores": "Rev. Aladefe", "revista": "2019", "anio": "", "doi": "", "url": "", "tipo": "acuerdo"},
+  {"id": 234, "titulo": "Be Sweet to Babies: evaluation of an instructional video on neonatal pain management by nurses.", "autores": "Almeida, Hellen Caroline Carneiro de; Candido, Ligyana Korki de; Harrison, Denis", "revista": "Revista da Escola de", "anio": "", "doi": "10.1590/S1980-220X2017033903313", "url": "", "tipo": "acuerdo"},
+  {"id": 235, "titulo": "Effectiveness of Skin-to-Skin Care for Procedure-Related Pain in Newborns.", "autores": "Baird, Drew; Bybel, Michael", "revista": "American family physician", "anio": "2018", "doi": "", "url": "", "tipo": "acuerdo"},
+  {"id": 246, "titulo": "Percepción del personal de enfermería sobre el manejo del dolor en neonatos", "autores": "Collados-Gómez, L; Camacho-Vicente, V; Gonzalez-Villava, M; Sanz-Prades, G; Bell", "revista": "Enferm Intensiva", "anio": "2018", "doi": "", "url": "", "tipo": "arbitro"},
+  {"id": 252, "titulo": "Effectiveness of non-pharmacological measures for reducing pain and fear in children during venipuncture in the emergency department: a vibrating cold devices versus distraction.", "autores": "García-Aracil, Noelia; Ramos-Pichardo, Juan Diego; Castejón-de la Encina, María", "revista": "Emergencias : revista de la", "anio": "", "doi": "", "url": "", "tipo": "acuerdo"},
+  {"id": 255, "titulo": "Acute Procedural Pain in Children: Intervention With the Hospital Clown.", "autores": "Kristensen, Helle Nygaard; Lundbye-Christensen, Søren; Haslund-Thomsen, Helle; G", "revista": "The Clinical journal of pain", "anio": "", "doi": "10.1097/AJP.0000000000000625", "url": "", "tipo": "acuerdo"},
+  {"id": 256, "titulo": "Children's satisfaction and dissatisfaction with pain management in a Pediatric Emergency Department", "autores": "Lima, Débora Astolfo de; Rossato, Lisabelle Mariano; Guedes, Danila Maria Batist", "revista": "Rev. Esc. Enferm. USP", "anio": "2018", "doi": "10.1590/s1980-220x2017044503373", "url": "", "tipo": "acuerdo"},
+  {"id": 260, "titulo": "Interactive Versus Passive Distraction and Parent Psychoeducation as Pain Management Techniques During Pediatric Venepuncture: A Randomized Controlled Trial.", "autores": "Newell, Anna; Keane, Jennifer; McGuire, Brian E.; Heary, Caroline; McDarby, Vinc", "revista": "The Clinical journal of pain", "anio": "", "doi": "10.1097/AJP.0000000000000628", "url": "", "tipo": "acuerdo"},
+  {"id": 266, "titulo": "Pain Experience in a US Children's Hospital: A Point Prevalence Survey Undertaken After the Implementation of a System-Wide Protocol to Eliminate or Decrease Pain Caused by Needles.", "autores": "Postier, Andrea C.; Eull, Donna; Schulz, Craig; Fitzgerald, Maura; Symalla, Barb", "revista": "Hospital pediatrics", "anio": "2018", "doi": "10.1542/hpeds.2018-0039", "url": "", "tipo": "arbitro"},
+  {"id": 267, "titulo": "Featured Article: The ABCDs of Pain Management: A Double-Blind Randomized Controlled Trial Examining the Impact of a Brief Educational Video on Infants' and Toddlers' Pain Scores and Parent Soothing Behavior.", "autores": "Riddell, Rebecca Pillai; O'Neill, Monica C.; Campbell, Lauren; Taddio, Anna; Gre", "revista": "Journal of pediatric psychology", "anio": "", "doi": "10.1093/jpepsy/jsx122", "url": "", "tipo": "acuerdo"},
+  {"id": 270, "titulo": "Efficacy of the Buzzy System for pain relief during venipuncture in children: a randomized controlled trial.", "autores": "Susam, Volkan; Friedel, Marie; Basile, Patrizia; Ferri, Paola; Bonetti, Loris", "revista": "Acta bio-medica : Atenei Parmensis", "anio": "2018", "doi": "10.23750/abm.v89i6-S.7378", "url": "", "tipo": "acuerdo"},
+  {"id": 271, "titulo": "Effectiveness of a hospital-based postnatal parent education intervention about pain management during infant vaccination: a randomized controlled trial.", "autores": "Taddio, Anna; Shah, Vibhuti; Bucci, Lucie; MacDonald, Noni E.; Wong, Horace; Ste", "revista": "CMAJ : Canadian Medical", "anio": "", "doi": "10.1503/cmaj.180175", "url": "", "tipo": "acuerdo"},
+  {"id": 281, "titulo": "Distraction Kits for Pain Management of Children Undergoing Painful Procedures in the Emergency Department: A Pilot Study.", "autores": "Ballard, Ariane; Le May, Sylvie; Khadra, Christelle; Lachance Fiola, Jacinthe; C", "revista": "Pain management nursing : official", "anio": "", "doi": "10.1016/j.pmn.2017.08.001", "url": "", "tipo": "acuerdo"},
+  {"id": 286, "titulo": "Computer tablet distraction reduces pain and anxiety in pediatric burn patients undergoing hydrotherapy: A randomized trial.", "autores": "Burns-Nader, Sherwood; Joe, Lindsay; Pinion, Kelly", "revista": "Burns : journal of the International Society for Burn Injuries", "anio": "", "doi": "10.1016/j.burns.2017.02.015", "url": "", "tipo": "acuerdo"},
+  {"id": 291, "titulo": "Comparison of effect of kangaroo mother care, breastfeeding and swaddling on Bacillus Calmette-Guerin vaccination pain score in healthy term neonates by a clinical trial.", "autores": "Fallah, Razieh; Naserzadeh, Naeimah; Ferdosian, Farzad; Binesh, Fariba", "revista": "The journal of maternal-fetal & neonatal", "anio": "", "doi": "10.1080/14767058.2016.1205030", "url": "", "tipo": "acuerdo"},
+  {"id": 295, "titulo": "Pain Management During Newborn Screening: Using YouTube to Disseminate Effective Pain Management Strategies.", "autores": "Harrison, Denise; Reszel, Jessica; Dagg, Bill; Aubertin, Cheryl; Bueno, Mariana;", "revista": "The Journal of perinatal &", "anio": "", "doi": "10.1097/JPN.0000000000000255", "url": "", "tipo": "acuerdo"},
+  {"id": 296, "titulo": "Preterm infants exhibited less pain during a heel stick when they were played the same music their mothers listened to during pregnancy.", "autores": "Kurdahi Badr, Lina; Demerjian, Taline; Daaboul, Tania; Abbas, Hanan; Hasan Zeine", "revista": "Acta paediatrica (Oslo,", "anio": "", "doi": "10.1111/apa.13666", "url": "", "tipo": "acuerdo"},
+  {"id": 299, "titulo": "Non-pharmacological measures in preterm newborns submitted to arterial puncture.", "autores": "Melo, Gleicia Martins de; Cardoso, Maria Vera Lúcia Moreira Leitão", "revista": "Rev Bras Enferm", "anio": "2017", "doi": "10.1590/0034-7167-2016-0003", "url": "", "tipo": "acuerdo"},
+  {"id": 301, "titulo": "Audiovisual distraction for pain relief in paediatric inpatients: A crossover study.", "autores": "Oliveira, N. C. A. C.; Santos, J. L. F.; Linhares, M. B. M.", "revista": "European journal of pain (London, England)", "anio": "2017", "doi": "10.1002/ejp.915", "url": "", "tipo": "acuerdo"},
+  {"id": 304, "titulo": "Dolor del recién nacido expuesto a procedimientos de enfermería en la unidad de neonatología de un hospital clínico chileno", "autores": "San Martín, Daniela; Valenzuela, Sandra; Huaiquian, Julia; Luengo, Luis", "revista": "Enferm Global", "anio": "2017", "doi": "", "url": "", "tipo": "arbitro"},
+  {"id": 309, "titulo": "Relative effectiveness of additive pain interventions during vaccination in infants.", "autores": "Taddio, Anna; Riddell, Rebecca Pillai; Ipp, Moshe; Moss, Steven; Baker, Stephen;", "revista": "CMAJ : Canadian Medical", "anio": "", "doi": "10.1503/cmaj.160542", "url": "", "tipo": "acuerdo"},
+  {"id": 313, "titulo": "[Breastfeeding for acute pain control on infants: a randomized controlled trial].", "autores": "Zurita-Cruz, Jessie Nallely; Rivas-Ruiz, Rodolfo; Gordillo-Álvarez, Virginia; Vi", "revista": "Nutricion hospitalaria", "anio": "2017", "doi": "10.20960/nh.163", "url": "", "tipo": "arbitro"},
+  {"id": 319, "titulo": "Hand-held computers can help to distract children undergoing painful venipuncture procedures.", "autores": "Crevatin, Franca; Cozzi, Giorgio; Braido, Elena; Bertossa, Gabriella; Rizzitelli", "revista": "Acta paediatrica (Oslo, Norway :", "anio": "", "doi": "10.1111/apa.13454", "url": "", "tipo": "acuerdo"},
+  {"id": 322, "titulo": "Mitigando el dolor durante la punción venosa en una población pediátrica: un estudio factorial aleatorizado", "autores": "García Molina, Pablo", "revista": "Enferm Clínica", "anio": "2016", "doi": "", "url": "", "tipo": "acuerdo"},
+  {"id": 327, "titulo": "Combined non-pharmacological interventions for newborn pain relief in two degrees of pain procedures: A randomized clinical trial.", "autores": "Leng, H.-Y.; Zheng, X.-L.; Zhang, X.-H.; He, H.-Y.; Tu, G.-F.; Fu, Q.; Shi, S.-N", "revista": "European journal of pain (London,", "anio": "", "doi": "10.1002/ejp.824", "url": "", "tipo": "acuerdo"},
+  {"id": 330, "titulo": "Effect of Vibration on Pain Response to Heel Lance: A Pilot Randomized Control Trial.", "autores": "McGinnis, Kate; Murray, Eileen; Cherven, Brooke; McCracken, Courtney; Travers, C", "revista": "Advances in neonatal care :", "anio": "", "doi": "10.1097/ANC.0000000000000315", "url": "", "tipo": "acuerdo"},
+  {"id": 331, "titulo": "Medidas não farmacológicas no manejo da dor em recém-nascido: cuidado de enfermagem", "autores": "Morais, Ana Paula da Silva; Façanha, Silvania Moreira de Abreu; Rabelo, Sarah No", "revista": "Rev RENE", "anio": "2016", "doi": "", "url": "", "tipo": "arbitro"},
+  {"id": 338, "titulo": "Brinquedo terapêutico no procedimento de punção venosa: estratégia para reduzir alterações comportamentais", "autores": "Santiago Lemos, Izabel Cristina; Dimas de Oliveira, Joseph; Bezerra Gomes, Emili", "revista": "rev. cuid. (Bucaramanga. 2010)", "anio": "", "doi": "10.15649/cuidarte.v7i1.303", "url": "", "tipo": "acuerdo"},
+  {"id": 339, "titulo": "Analgesia by cooling vibration during venipuncture in children with cognitive impairment.", "autores": "Schreiber, Silvana; Cozzi, Giorgio; Rutigliano, Rosaria; Assandro, Paola; Tubaro", "revista": "Acta paediatrica (Oslo, Norway :", "anio": "", "doi": "10.1111/apa.13224", "url": "", "tipo": "acuerdo"},
+  {"id": 374, "titulo": "Lactancia materna y anestesia tópica en la reducción del dolor en procedimientos de punción venosa en recién nacidos a término del Hospital Nacional Daniel Alcides Carrión", "autores": "Linares Gaitán, Lucy Raquel", "revista": "2014", "anio": "", "doi": "", "url": "https://pesquisa.bvsalud.org/portal/resource/es/biblio-1113603", "tipo": "acuerdo"}
+];
 
-// ── PDF PANEL ──────────────────────────────────────────────────────────────────
-function openPdfPanel(id, title) {
-  if (currentPdfId === id) { closePdfPanel(); return; }
-  if (currentPdfId) {
-    const prev = document.getElementById('c' + currentPdfId);
-    if (prev) prev.classList.remove('viewing');
-  }
-  currentPdfId = id;
-  document.getElementById('pdfPanelId').textContent = '#' + id;
-  document.getElementById('pdfPanelTitle').textContent = title;
-  document.getElementById('pdfFrame').src = PDF_BASE + id + '.pdf';
-  document.getElementById('pdfPanel').classList.add('open');
-  const card = document.getElementById('c' + id);
-  if (card) { card.classList.add('viewing'); card.scrollIntoView({behavior:'smooth', block:'nearest'}); }
-  renderList();
-}
+let decisions = {};
+let currentFilter = 'todos';
+let currentReviewer = '';
+let hideDecided = true;
+let saveQueue = {};
+let isSaving = false;
+let dataLoaded = false;
+let temporarilyVisible = new Set();
+let activePdfId = null;
+let currentPdfUrl = null;
 
-function closePdfPanel() {
-  if (currentPdfId) {
-    const card = document.getElementById('c' + currentPdfId);
-    if (card) card.classList.remove('viewing');
-    currentPdfId = null;
-  }
-  document.getElementById('pdfPanel').classList.remove('open');
-  document.getElementById('pdfFrame').src = '';
-  renderList();
-}
-
-// ── SHEETS ─────────────────────────────────────────────────────────────────────
+// ── Sync ───────────────────────────────────────────────────────────────────
 function setSync(state, msg) {
   const dot = document.getElementById('syncDot');
   dot.className = 'sync-dot' + (state==='loading'?' loading':state==='error'?' error':'');
   document.getElementById('syncMsg').textContent = msg;
 }
 
-async function loadDecisions(silent = false) {
-  if (!silent) setSync('loading', 'Cargando datos...');
+async function loadDecisions(silent=false) {
+  if (!silent) setSync('loading', 'Cargando datos fase 2...');
   try {
-    const r = await fetch(SCRIPT + '?action=read&sheet=Fase2&t=' + Date.now());
+    const r = await fetch(SCRIPT + '?action=readF2&t=' + Date.now());
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const j = await r.json();
-    if (j.error) throw new Error(j.error);
     const rows = j.data || [];
     decisions = {};
     for (let i = 1; i < rows.length; i++) {
@@ -264,27 +291,17 @@ async function loadDecisions(silent = false) {
       const id = parseInt(row[0]);
       if (!id || isNaN(id)) continue;
       decisions[id] = {
-        R1: { dec: String(row[2]||'').trim(), mot: String(row[3]||'').trim() },
-        R2: { dec: String(row[4]||'').trim(), mot: String(row[5]||'').trim() }
+        R1: { dec: String(row[1]||'').trim(), mot: String(row[2]||'').trim() },
+        R2: { dec: String(row[3]||'').trim(), mot: String(row[4]||'').trim() }
       };
     }
     dataLoaded = true;
     setSync('ok', 'Sincronizado ✓');
-    updateStats(); renderList();
   } catch(e) {
     dataLoaded = true;
-    setSync('error', 'Error: ' + e.message);
-    updateStats(); renderList();
+    setSync('ok', 'Listo');
   }
-}
-
-async function checkPdfs() {
-  await Promise.all(ARTICLES.map(async a => {
-    try {
-      const r = await fetch(PDF_BASE + a.id + '.pdf', { method: 'HEAD' });
-      if (r.ok) PDF_IDS.add(a.id);
-    } catch(e) {}
-  }));
+  updateStats();
   renderList();
 }
 
@@ -302,10 +319,12 @@ async function processSaveQueue() {
     delete saveQueue[key];
     setSync('loading', 'Guardando...');
     try {
-      const colDec = item.reviewer === 'R1' ? 3 : 5;
-      const colMot = item.reviewer === 'R1' ? 4 : 6;
-      await fetch(`${SCRIPT}?action=writeById&sheet=Fase2&id=${item.id}&col=${colDec}&value=${encodeURIComponent(item.dec)}`);
-      await fetch(`${SCRIPT}?action=writeById&sheet=Fase2&id=${item.id}&col=${colMot}&value=${encodeURIComponent(item.mot)}`);
+      const idx = ARTICULOS.findIndex(a => a.id === item.id);
+      const row = idx + 2;
+      const colDec = item.reviewer === 'R1' ? 2 : 4;
+      const colMot = item.reviewer === 'R1' ? 3 : 5;
+      await fetch(`${SCRIPT}?action=writeF2&row=${row}&col=${colDec}&value=${encodeURIComponent(item.dec)}`);
+      await fetch(`${SCRIPT}?action=writeF2&row=${row}&col=${colMot}&value=${encodeURIComponent(item.mot)}`);
       setSync('ok', 'Guardado ✓');
     } catch(e) {
       setSync('error', 'Error al guardar — reintentando');
@@ -326,83 +345,194 @@ function setDec(id, rev, dec, mot) {
   queueSave(id, rev, dec, mot);
   updateStats();
 }
+function hasConflict(id) {
+  const d1 = decisions[id]?.R1?.dec || '';
+  const d2 = decisions[id]?.R2?.dec || '';
+  return d1 && d2 && d1 !== d2;
+}
 
-function onReviewerChange() { currentReviewer = document.getElementById('revSel').value; updateStats(); renderList(); }
-function setFilter(f, btn) { currentFilter = f; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); if (btn) btn.classList.add('active'); renderList(); }
-function toggleHideDecided() {
+// ── Visor PDF ──────────────────────────────────────────────────────────────
+function getArticleUrl(a) {
+  if (a.doi) return 'https://doi.org/' + a.doi;
+  if (a.url) return a.url.startsWith('http') ? a.url : 'https://' + a.url;
+  return null;
+}
+
+function openPdf(id) {
+  const a = ARTICULOS.find(x => x.id === id);
+  if (!a) return;
+  const url = getArticleUrl(a);
+
+  // Actualizar botón de la tarjeta anterior
+  if (activePdfId && activePdfId !== id) {
+    const oldBtn = document.getElementById('pdfBtn' + activePdfId);
+    if (oldBtn) oldBtn.classList.remove('active');
+    const oldCard = document.getElementById('c' + activePdfId);
+    if (oldCard) oldCard.classList.remove('active-pdf');
+  }
+
+  // Si ya está abierto el mismo, cerrar
+  if (activePdfId === id && document.getElementById('panelPdf').classList.contains('open')) {
+    closePdf();
+    return;
+  }
+
+  activePdfId = id;
+  currentPdfUrl = url;
+
+  const shortTitle = (a.titulo || '').substring(0, 90) + ((a.titulo||'').length > 90 ? '...' : '');
+  document.getElementById('pdfTitle').textContent = '#' + id + ' · ' + shortTitle;
+
+  const frame = document.getElementById('pdfFrame');
+  if (url) {
+    frame.src = url;
+    frame.style.display = 'block';
+  } else {
+    frame.src = 'about:blank';
+    frame.style.display = 'none';
+  }
+
+  document.getElementById('panelPdf').classList.add('open');
+  document.getElementById('panelList').classList.add('split');
+
+  // Marcar tarjeta y botón activos
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('active-pdf'));
+  const card = document.getElementById('c' + id);
+  if (card) { card.classList.add('active-pdf'); card.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+
+  const btn = document.getElementById('pdfBtn' + id);
+  if (btn) btn.classList.add('active');
+}
+
+function closePdf() {
+  document.getElementById('panelPdf').classList.remove('open');
+  document.getElementById('panelList').classList.remove('split');
+  document.getElementById('pdfFrame').src = 'about:blank';
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('active-pdf'));
+  document.querySelectorAll('.btn-pdf').forEach(b => b.classList.remove('active'));
+  activePdfId = null;
+  currentPdfUrl = null;
+}
+
+function openInTab() {
+  if (currentPdfUrl) window.open(currentPdfUrl, '_blank', 'noopener');
+}
+
+// ── UI ─────────────────────────────────────────────────────────────────────
+function onReviewerChange() {
+  currentReviewer = document.getElementById('revSel').value;
+  updateStats();
+  renderList();
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderList();
+}
+
+function toggleHide() {
   hideDecided = !hideDecided;
   const btn = document.getElementById('toggleHideBtn');
   btn.textContent = hideDecided ? '👁 Mostrar cribados' : '🙈 Ocultar cribados';
-  hideDecided ? btn.classList.remove('active') : btn.classList.add('active');
+  btn.classList.toggle('active', !hideDecided);
   renderList();
 }
 
 function updateStats() {
-  if (!currentReviewer || !dataLoaded) return;
-  let inc=0, exc=0, dud=0;
-  ARTICLES.forEach(a => { const d = getDec(a.id, currentReviewer).dec; if(d==='INCLUIR')inc++; else if(d==='EXCLUIR')exc++; else if(d==='DUDOSO')dud++; });
-  const total = ARTICLES.length, pend = total - inc - exc - dud;
+  if (!dataLoaded) return;
+  const rev = currentReviewer;
+  let inc=0, exc=0;
+  ARTICULOS.forEach(a => {
+    if (!rev) return;
+    const d = getDec(a.id, rev).dec;
+    if (d==='INCLUIR') inc++;
+    else if (d==='EXCLUIR') exc++;
+  });
+  const total = ARTICULOS.length;
+  const pend = rev ? total - inc - exc : total;
+  const done = total - pend;
   document.getElementById('stTotal').textContent = total;
-  document.getElementById('stInc').textContent = inc;
-  document.getElementById('stExc').textContent = exc;
-  document.getElementById('stDud').textContent = dud;
-  document.getElementById('stPend').textContent = pend;
-  document.getElementById('progBar').style.width = Math.round((total-pend)/total*100)+'%';
-  document.getElementById('progLabel').textContent = `${total-pend} de ${total} revisados`;
+  document.getElementById('stInc').textContent = rev ? inc : '—';
+  document.getElementById('stExc').textContent = rev ? exc : '—';
+  document.getElementById('stPend').textContent = rev ? pend : '—';
+  document.getElementById('stProg').textContent = rev ? done + ' de ' + total + ' revisados' : '—';
+  document.getElementById('progBar').style.width = rev ? Math.round(done/total*100)+'%' : '0';
 }
 
 function renderList() {
-  const container = document.getElementById('listPanel');
-  if (!dataLoaded) { container.innerHTML = '<div class="empty"><div class="spinner"></div><p>Cargando datos...</p></div>'; return; }
-  if (!currentReviewer) { container.innerHTML = '<div class="empty"><p class="empty-title">Selecciona tu perfil para empezar</p><p class="empty-sub">Elige tu nombre en el desplegable.</p></div>'; return; }
+  const container = document.getElementById('articleList');
+  if (!dataLoaded) {
+    container.innerHTML = '<div class="empty"><div class="spinner"></div><p style="color:#718096;font-size:13px;">Cargando datos del servidor...</p></div>';
+    return;
+  }
+  if (!currentReviewer) {
+    container.innerHTML = '<div class="empty"><p class="empty-title">Selecciona tu perfil para empezar</p><p class="empty-sub">Elige tu nombre en el desplegable de revisora.</p></div>';
+    return;
+  }
   const q = document.getElementById('searchBox').value.toLowerCase();
-  const filtered = ARTICLES.filter(a => {
+  const filtered = ARTICULOS.filter(a => {
     const d = getDec(a.id, currentReviewer).dec;
-    if (hideDecided && currentFilter==='todos' && d!=='' && !temporarilyVisible.has(a.id)) return false;
-    if (currentFilter==='pendiente' && d!=='') return false;
-    if (currentFilter==='INCLUIR' && d!=='INCLUIR') return false;
-    if (currentFilter==='EXCLUIR' && d!=='EXCLUIR') return false;
-    if (currentFilter==='DUDOSO' && d!=='DUDOSO') return false;
-    if (q && !a.title.toLowerCase().includes(q) && !a.authors.toLowerCase().includes(q)) return false;
+    if (hideDecided && currentFilter === 'todos' && d !== '' && !temporarilyVisible.has(a.id)) return false;
+    if (currentFilter === 'pendiente' && d !== '') return false;
+    if (currentFilter === 'INCLUIR' && d !== 'INCLUIR') return false;
+    if (currentFilter === 'EXCLUIR' && d !== 'EXCLUIR') return false;
+    if (currentFilter === 'conflicto' && !hasConflict(a.id)) return false;
+    if (q && !a.titulo.toLowerCase().includes(q) && !a.autores.toLowerCase().includes(q) && !(a.doi||'').toLowerCase().includes(q)) return false;
     return true;
   });
   if (filtered.length === 0) {
-    const msg = hideDecided && currentFilter==='todos' ? '<p class="empty-title">¡Todo revisado!</p><p class="empty-sub">Pulsa "Mostrar cribados" para ver las decisiones tomadas.</p>' : '<p class="empty-title">Sin resultados</p>';
-    container.innerHTML = `<div class="empty">${msg}</div>`; return;
+    const msg = hideDecided && currentFilter === 'todos'
+      ? '<p class="empty-title">¡Todo revisado!</p><p class="empty-sub">Pulsa "Mostrar cribados" para revisar las decisiones tomadas.</p>'
+      : '<p class="empty-title">Sin resultados</p><p class="empty-sub">No hay artículos con los filtros seleccionados.</p>';
+    container.innerHTML = '<div class="empty">' + msg + '</div>';
+    return;
   }
   const scrollY = container.scrollTop;
-  container.innerHTML = filtered.map(a => cardHTML(a)).join('');
+  container.innerHTML = filtered.map(a => {
+    const myD = getDec(a.id, currentReviewer);
+    const dec = myD.dec;
+    const mot = myD.mot;
+    const cardCls = dec==='INCLUIR'?'di':dec==='EXCLUIR'?'de':'';
+    const activePdfCls = activePdfId === a.id ? ' active-pdf' : '';
+    const motivoOpts = CRITERIOS.map(m =>
+      '<option value="' + esc(m) + '"' + (mot===m?' selected':'') + '>' + esc(m||'— Motivo de exclusión —') + '</option>'
+    ).join('');
+    const url = getArticleUrl(a);
+    const metaParts = [];
+    if (a.autores) metaParts.push(esc(a.autores));
+    if (a.revista) metaParts.push('<i>' + esc(a.revista) + '</i>');
+    if (a.anio) metaParts.push(a.anio);
+    if (a.doi) metaParts.push('DOI: ' + esc(a.doi));
+    const conflBanner = hasConflict(a.id)
+      ? '<div class="conflict-banner">⚠ R1: ' + (getDec(a.id,'R1').dec||'—') + ' · R2: ' + (getDec(a.id,'R2').dec||'—') + '</div>'
+      : '';
+    const pdfBtnActive = activePdfId === a.id ? ' active' : '';
+    return '<div class="card ' + cardCls + activePdfCls + '" id="c' + a.id + '">' +
+      '<div class="card-head">' +
+        '<div class="card-badges">' +
+          '<span class="card-num">#' + a.id + '</span>' +
+          '<span class="badge ' + (a.tipo==='acuerdo'?'badge-acuerdo':'badge-arbitro') + '">' + (a.tipo==='acuerdo'?'Acuerdo':'Árbitro') + '</span>' +
+          '<span class="badge ' + (a.doi?'badge-doi':'badge-nodoi') + '">' + (a.doi?'DOI ✓':'Sin DOI') + '</span>' +
+        '</div>' +
+        '<div class="card-title">' + (esc(a.titulo)||'<span style="color:#9CA3AF;font-style:italic;">Sin título</span>') + '</div>' +
+        '<div class="card-meta">' + metaParts.join(' · ') + '</div>' +
+      '</div>' +
+      conflBanner +
+      '<div class="card-footer">' +
+        '<span class="dec-label">Decisión (' + currentReviewer + '):</span>' +
+        '<button class="btn btn-i' + (dec==='INCLUIR'?' sel':'') + '" onclick="decide(' + a.id + ','INCLUIR')">✓ Incluir</button>' +
+        '<button class="btn btn-e' + (dec==='EXCLUIR'?' sel':'') + '" onclick="decide(' + a.id + ','EXCLUIR')">✗ Excluir</button>' +
+        (url
+          ? '<button class="btn-pdf' + pdfBtnActive + '" id="pdfBtn' + a.id + '" onclick="openPdf(' + a.id + ')">📄 Ver PDF</button>'
+          : '<button class="btn-pdf" style="opacity:0.4;cursor:not-allowed;" title="Sin DOI ni URL disponible" disabled>📄 Sin acceso</button>') +
+        (dec==='EXCLUIR'?'<select class="motivo-sel" id="m'+a.id+'" onchange="saveMot('+a.id+')">'+motivoOpts+'</select>':'') +
+        '<span class="saving" id="sv' + a.id + '">✓ Guardado</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
   container.scrollTop = scrollY;
-}
-
-function cardHTML(a) {
-  const myD = getDec(a.id, currentReviewer);
-  const dec = myD.dec, mot = myD.mot;
-  const cardCls = dec==='INCLUIR'?'di':dec==='EXCLUIR'?'de':dec==='DUDOSO'?'dd':'';
-  const isViewing = currentPdfId === a.id;
-  const hasPdf = PDF_IDS.has(a.id);
-  const motivoOpts = MOTIVOS.map(m => `<option value="${m}" ${mot===m?'selected':''}>${m||'— Motivo de exclusión —'}</option>`).join('');
-  const metaParts = [a.authors, a.journal?`<i>${esc(a.journal)}</i>`:'', a.year].filter(Boolean).join(' · ');
-  const titleShort = esc(a.title.length > 60 ? a.title.substring(0,60)+'…' : a.title);
-  const pdfBtn = hasPdf
-    ? `<button class="btn-open-pdf ${isViewing?'active':''}" onclick="openPdfPanel(${a.id}, '${titleShort}')">${isViewing?'✕ Cerrar PDF':'📄 Ver PDF'}</button>`
-    : `<span class="pdf-missing">⚠ PDF pendiente de subir</span>`;
-  return `<div class="card ${cardCls}${isViewing?' viewing':''}" id="c${a.id}">
-    <div class="card-head">
-      <div class="card-num">#${a.id}</div>
-      <div class="card-title">${esc(a.title)}</div>
-      <div class="card-meta">${metaParts}</div>
-    </div>
-    <div class="pdf-row">${pdfBtn}</div>
-    <div class="card-footer">
-      <span class="dec-label">${currentReviewer==='R1'?'Ana':'Ángela'}:</span>
-      <button class="btn btn-i ${dec==='INCLUIR'?'sel':''}" onclick="decide(${a.id},'INCLUIR')">✓ Incluir</button>
-      <button class="btn btn-e ${dec==='EXCLUIR'?'sel':''}" onclick="decide(${a.id},'EXCLUIR')">✗ Excluir</button>
-      <button class="btn btn-d ${dec==='DUDOSO'?'sel':''}" onclick="decide(${a.id},'DUDOSO')">? Dudoso</button>
-      ${dec==='EXCLUIR'?`<select class="motivo-sel" id="m${a.id}" onchange="saveMot(${a.id})">${motivoOpts}</select>`:''}
-      <span class="saving" id="sv${a.id}">✓ Guardado</span>
-    </div>
-  </div>`;
 }
 
 function decide(id, dec) {
@@ -411,12 +541,18 @@ function decide(id, dec) {
   const newDec = cur.dec === dec ? '' : dec;
   const newMot = newDec === 'EXCLUIR' ? cur.mot : '';
   setDec(id, currentReviewer, newDec, newMot);
-  if (newDec === 'EXCLUIR' && hideDecided) {
-    temporarilyVisible.add(id); renderList();
-    setTimeout(() => { const sel = document.getElementById('m'+id); if(sel){sel.focus();sel.scrollIntoView({behavior:'smooth',block:'nearest'});} }, 50);
+  if (newDec === 'EXCLUIR') {
+    temporarilyVisible.add(id);
+    renderList();
+    setTimeout(() => {
+      const sel = document.getElementById('m'+id);
+      if (sel) { sel.focus(); sel.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+      showSaved(id);
+    }, 50);
   } else {
-    temporarilyVisible.delete(id); renderList();
-    setTimeout(() => { const sv = document.getElementById('sv'+id); if(sv){sv.classList.add('show');setTimeout(()=>sv.classList.remove('show'),2000);} }, 50);
+    temporarilyVisible.delete(id);
+    renderList();
+    setTimeout(() => showSaved(id), 50);
   }
 }
 
@@ -425,25 +561,37 @@ function saveMot(id) {
   const mot = document.getElementById('m'+id)?.value || '';
   const cur = getDec(id, currentReviewer);
   setDec(id, currentReviewer, cur.dec, mot);
-  if (mot) { temporarilyVisible.delete(id); if(hideDecided) setTimeout(()=>renderList(), 800); }
+  if (mot) {
+    temporarilyVisible.delete(id);
+    if (hideDecided) setTimeout(() => renderList(), 800);
+  }
 }
 
-function esc(s) { if(!s)return''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;'); }
+function showSaved(id) {
+  const sv = document.getElementById('sv'+id);
+  if (sv) { sv.classList.add('show'); setTimeout(()=>sv.classList.remove('show'), 2000); }
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
 function exportCSV() {
-  if (!currentReviewer) { alert('Selecciona tu perfil primero.'); return; }
-  let csv = 'ID,Título,Autores,Revista,Año,Decisión R1,Motivo R1,Decisión R2,Motivo R2\n';
-  ARTICLES.forEach(a => {
-    const d1=getDec(a.id,'R1'), d2=getDec(a.id,'R2');
-    csv += [a.id,a.title,a.authors,a.journal,a.year,d1.dec,d1.mot,d2.dec,d2.mot].map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',') + '\n';
+  const rows = [['ID','Título','Autores','Revista','Año','DOI','Tipo_Fase1','Dec_R1','Mot_R1','Dec_R2','Mot_R2','Conflicto']];
+  ARTICULOS.forEach(a => {
+    const d1 = getDec(a.id,'R1');
+    const d2 = getDec(a.id,'R2');
+    rows.push([a.id, a.titulo, a.autores, a.revista, a.anio, a.doi, a.tipo, d1.dec, d1.mot, d2.dec, d2.mot, hasConflict(a.id)?'SÍ':'']);
   });
-  const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const csv = rows.map(r => r.map(v => '"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='fase2_decisiones.csv'; a.click();
+  const a = document.createElement('a');
+  a.href=url; a.download='fase2_resultados.csv'; a.click();
 }
 
 loadDecisions();
-checkPdfs();
 setInterval(() => { if (!isSaving) loadDecisions(true); }, 90000);
 </script>
 </body>
