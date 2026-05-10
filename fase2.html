@@ -353,9 +353,7 @@ function hasConflict(id) {
 
 // ── Visor PDF ──────────────────────────────────────────────────────────────
 function getArticleUrl(a) {
-  if (a.doi) return 'https://doi.org/' + a.doi;
-  if (a.url) return a.url.startsWith('http') ? a.url : 'https://' + a.url;
-  return null;
+  return 'https://anadominguezro-lab.github.io/cribado-rs-pdfs/' + a.id + '.pdf';
 }
 
 function openPdf(id) {
@@ -499,7 +497,6 @@ function renderList() {
     const motivoOpts = CRITERIOS.map(m =>
       '<option value="' + esc(m) + '"' + (mot===m?' selected':'') + '>' + esc(m||'— Motivo de exclusión —') + '</option>'
     ).join('');
-    const url = getArticleUrl(a);
     const metaParts = [];
     if (a.autores) metaParts.push(esc(a.autores));
     if (a.revista) metaParts.push('<i>' + esc(a.revista) + '</i>');
@@ -524,9 +521,7 @@ function renderList() {
         '<span class="dec-label">Decisión (' + currentReviewer + '):</span>' +
         '<button class="btn btn-i' + (dec==='INCLUIR'?' sel':'') + '" onclick="decide(' + a.id + ',&apos;INCLUIR&apos;)">✓ Incluir</button>' +
         '<button class="btn btn-e' + (dec==='EXCLUIR'?' sel':'') + '" onclick="decide(' + a.id + ',&apos;EXCLUIR&apos;)">✗ Excluir</button>' +
-        (url
-          ? '<button class="btn-pdf' + pdfBtnActive + '" id="pdfBtn' + a.id + '" onclick="openPdf(' + a.id + ')">📄 Ver PDF</button>'
-          : '<button class="btn-pdf" style="opacity:0.4;cursor:not-allowed;" title="Sin DOI ni URL disponible" disabled>📄 Sin acceso</button>') +
+        '<button class="btn-pdf' + pdfBtnActive + '" id="pdfBtn' + a.id + '" onclick="openPdf(' + a.id + ')">📄 Ver PDF</button>' +
         (dec==='EXCLUIR'?'<select class="motivo-sel" id="m'+a.id+'" onchange="saveMot('+a.id+')">'+motivoOpts+'</select>':'') +
         '<span class="saving" id="sv' + a.id + '">✓ Guardado</span>' +
       '</div>' +
