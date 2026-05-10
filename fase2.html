@@ -522,8 +522,8 @@ function renderList() {
       conflBanner +
       '<div class="card-footer">' +
         '<span class="dec-label">Decisión (' + currentReviewer + '):</span>' +
-        '<button class="btn btn-i' + (dec==='INCLUIR'?' sel':'') + '" onclick="decide(' + a.id + ','INCLUIR')">✓ Incluir</button>' +
-        '<button class="btn btn-e' + (dec==='EXCLUIR'?' sel':'') + '" onclick="decide(' + a.id + ','EXCLUIR')">✗ Excluir</button>' +
+        '<button class="btn btn-i' + (dec==='INCLUIR'?' sel':'') + '" onclick="decide(' + a.id + ',&apos;INCLUIR&apos;)">✓ Incluir</button>' +
+        '<button class="btn btn-e' + (dec==='EXCLUIR'?' sel':'') + '" onclick="decide(' + a.id + ',&apos;EXCLUIR&apos;)">✗ Excluir</button>' +
         (url
           ? '<button class="btn-pdf' + pdfBtnActive + '" id="pdfBtn' + a.id + '" onclick="openPdf(' + a.id + ')">📄 Ver PDF</button>'
           : '<button class="btn-pdf" style="opacity:0.4;cursor:not-allowed;" title="Sin DOI ni URL disponible" disabled>📄 Sin acceso</button>') +
