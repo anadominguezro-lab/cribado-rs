@@ -74,6 +74,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .btn-d { border-color: #c05621; color: #c05621; }
 .btn-d:hover, .btn-d.sel { background: #c05621; color: white; }
 .motivo-sel { padding: 4px 8px; border-radius: 5px; border: 1px solid #cbd5e0; font-size: 11px; background: white; max-width: 260px; }
+.motivo-sel.falta { border: 2px solid #c53030; background: #fff5f5; }
+.falta-lbl { font-size: 11px; color: #c53030; font-weight: 700; }
 .saving { font-size: 10px; color: #276749; margin-left: auto; opacity: 0; transition: opacity 0.3s; }
 .saving.show { opacity: 1; }
 .empty { text-align: center; padding: 60px 20px; }
@@ -120,6 +122,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <button class="filter-btn fi" onclick="setFilter('INCLUIR',this)">Incluir</button>
   <button class="filter-btn fe" onclick="setFilter('EXCLUIR',this)">Excluir</button>
   <button class="filter-btn fd" onclick="setFilter('DUDOSO',this)">Dudoso</button>
+  <button class="filter-btn" onclick="setFilter('sin_motivo',this)" title="Excluidos a los que les falta el motivo">⚠ Sin motivo</button>
   <button class="filter-btn" onclick="setFilter('conflicto',this)" title="Usar solo al finalizar el cribado">Ver conflictos</button>
   <input class="search-box" id="searchBox" placeholder="Buscar título o autor..." oninput="onSearch()">
   <button class="toggle-btn" id="toggleHideBtn" onclick="toggleHideDecided()">👁 Mostrar cribados</button>
@@ -167,7 +170,7 @@ let rowMap = {};           // id -> nº fila en la hoja (1-based)
 let currentReviewer = '';
 let currentFilter = 'todos';
 let searchTerm = '';
-let hideDecided = false;
+let hideDecided = true;
 let dataLoaded = false;
 let mappingOk = false;
 let page = 0;
@@ -317,8 +320,8 @@ function onSearch(){ searchTerm = document.getElementById('searchBox').value.toL
 function toggleHideDecided() {
   hideDecided = !hideDecided;
   const btn = document.getElementById('toggleHideBtn');
-  btn.classList.toggle('active', hideDecided);
-  btn.textContent = hideDecided ? '👁 Ocultar cribados' : '👁 Mostrar cribados';
+  btn.classList.toggle('active', !hideDecided);
+  btn.textContent = hideDecided ? '👁 Mostrar cribados' : '🙈 Ocultar cribados';
   page = 0; renderList();
 }
 
@@ -342,11 +345,15 @@ function updateStats() {
 }
 
 function passesFilter(a) {
-  const d = getDec(a.id, currentReviewer).dec;
+  const dec = getDec(a.id, currentReviewer);
+  const d = dec.dec;
   if (currentFilter === 'conflicto') { if (!hasConflict(a.id)) return false; }
+  else if (currentFilter === 'sin_motivo') { if (!(d==='EXCLUIR' && !dec.mot)) return false; }
   else if (currentFilter === 'pendiente') { if (d) return false; }
   else if (currentFilter !== 'todos') { if (d !== currentFilter) return false; }
-  if (hideDecided && d) return false;
+  // Auto-ocultar cribados: solo en la vista "Todos", y nunca oculta una exclusión
+  // a la que le falte el motivo (debe quedar visible para completarla).
+  if (hideDecided && currentFilter === 'todos' && d && !(d==='EXCLUIR' && !dec.mot)) return false;
   if (searchTerm) {
     const hay = (a.title+' '+a.authors).toLowerCase();
     if (!hay.includes(searchTerm)) return false;
@@ -383,10 +390,11 @@ function cardHTML(a) {
   const d = getDec(a.id, currentReviewer);
   const cls = d.dec==='INCLUIR'?'di':d.dec==='EXCLUIR'?'de':d.dec==='DUDOSO'?'dd':'';
   const hasAbs = a.abstract && !a.abstract.startsWith('(sin resumen');
+  const faltaMot = d.dec==='EXCLUIR' && !d.mot;
   const motSel = d.dec==='EXCLUIR' ? `
-    <select class="motivo-sel" onchange="onMotivo(${a.id}, this.value)">
+    <select class="motivo-sel ${faltaMot?'falta':''}" onchange="onMotivo(${a.id}, this.value)">
       ${MOTIVOS.map(m=>`<option value="${escAttr(m)}" ${d.mot===m?'selected':''}>${m||'— motivo de exclusión —'}</option>`).join('')}
-    </select>` : '';
+    </select>${faltaMot?'<span class="falta-lbl">⚠ Falta el motivo</span>':''}` : '';
   return `
   <div class="card ${cls}" id="card-${a.id}">
     <div class="card-head" onclick="toggleCard(${a.id})">
@@ -410,20 +418,38 @@ function cardHTML(a) {
 
 function toggleCard(id){ document.getElementById('body-'+id).classList.toggle('open'); }
 
+// Tras una decisión: si el artículo ya no encaja en la vista actual (p. ej. cribado
+// con auto-ocultar activo), se elimina de la lista; si no, se repinta en su sitio.
+// Excepción: una exclusión sin motivo SIEMPRE permanece visible para poder completarla.
+function afterDecision(id) {
+  const a = ARTICLES.find(x => x.id === id);
+  const dec = getDec(id, currentReviewer);
+  const mustStay = dec.dec === 'EXCLUIR' && !dec.mot;
+  const card = document.getElementById('card-'+id);
+  if (!card) { updateStats(); return; }
+  if (!mustStay && !passesFilter(a)) {
+    card.style.transition = 'opacity .2s ease';
+    card.style.opacity = '0';
+    setTimeout(() => { renderList(); }, 190);
+  } else {
+    const wasOpen = document.getElementById('body-'+id)?.classList.contains('open');
+    card.outerHTML = cardHTML(a);
+    if (wasOpen) document.getElementById('body-'+id)?.classList.add('open');
+  }
+  updateStats();
+}
+
 function decide(id, dec) {
   const prev = getDec(id, currentReviewer);
   const mot = dec==='EXCLUIR' ? prev.mot : '';
   setDec(id, currentReviewer, dec, mot);
   const sv = document.getElementById('sv-'+id); if(sv){ sv.classList.add('show'); setTimeout(()=>sv.classList.remove('show'),1200); }
-  // Re-render solo esta tarjeta para reflejar el desplegable de motivo
-  const card = document.getElementById('card-'+id);
-  if (card) { const wasOpen = document.getElementById('body-'+id).classList.contains('open');
-    card.outerHTML = cardHTML(ARTICLES.find(a=>a.id===id));
-    if (wasOpen) document.getElementById('body-'+id).classList.add('open');
-  }
-  updateStats();
+  afterDecision(id);
 }
-function onMotivo(id, mot) { setDec(id, currentReviewer, 'EXCLUIR', mot); }
+function onMotivo(id, mot) {
+  setDec(id, currentReviewer, 'EXCLUIR', mot);
+  afterDecision(id);
+}
 
 /* ============================================================
    EXPORT
